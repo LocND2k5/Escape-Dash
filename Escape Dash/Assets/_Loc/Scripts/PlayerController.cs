@@ -90,13 +90,14 @@ public class PlayerController : MonoBehaviour
         // 6. Di chuyển tổng hợp: Tiến tới (Z) + Đổi làn (X mượt) + Nhảy (Y)
         
         // A) Tịnh tiến tiến tới liên tục (Trục Z)
-        transform.Translate(Vector3.forward * forwardSpeed * Time.deltaTime);
+        // ĐÃ BỎ: transform.Translate(Vector3.forward * forwardSpeed * Time.deltaTime);
+        // Vì ChunkSpawner đã di chuyển các khối đường về phía sau, nên Player chỉ cần đứng im trên trục Z.
         
         // B) Cập nhật vị trí chuyển làn (Trục X) và vị trí cao độ (Trục Y)
         Vector3 newPos = new Vector3(
             Mathf.Lerp(transform.position.x, targetPosition.x, laneChangeSpeed * Time.deltaTime), // Đổi làn mượt mà
             targetPosition.y, // Nhảy lên/Rơi xuống áp dụng trực tiếp công thức vật lý
-            transform.position.z // Z đã được tịnh tiến bằng Translate ở trên nên giữ nguyên
+            transform.position.z // Giữ nguyên vị trí Z hiện tại
         );
         transform.position = newPos;
     }
