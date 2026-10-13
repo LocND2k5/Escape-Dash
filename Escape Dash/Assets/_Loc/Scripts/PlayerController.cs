@@ -1,148 +1,198 @@
 using UnityEngine;
-using System.Collections; // Cần thiết để dùng Coroutine cho thời gian trượt
 
+// Gắn lên Player (root). Pivot của Player nằm ở CHÂN. Tag = "Player".
+// Cần: CapsuleCollider (không trigger) + Rigidbody (Is Kinematic). Model là object con.
+// KHÔNG gắn chung với TempPlayerRunner (hai script cùng điều khiển sẽ xung đột).
+//
+// Animator: tạo Animator Controller có các state tên đúng như dưới đây (không cần transition):
+//   Run, JumpStart, JumpLoop, Roll, Death
+[RequireComponent(typeof(CapsuleCollider))]
+[RequireComponent(typeof(Rigidbody))]
 public class PlayerController : MonoBehaviour
 {
-    [Header("Movement Settings")]
-    public float forwardSpeed = 10f; // Tốc độ chạy thẳng
-    public float laneDistance = 2.5f; // Khoảng cách giữa các làn (Lane)
-    public float laneChangeSpeed = 10f; // Tốc độ chuyển làn
+    [Header("Forward")]
+    public float forwardSpeed = 8f;
+    public float maxSpeed = 20f;
+    public float speedIncreasePerSecond = 0.1f;
 
-    [Header("Jump & Slide Settings")]
-    public float jumpForce = 8f; // Lực nhảy lên
-    public float gravity = -20f; // Trọng lực (Lực kéo xuống)
-    public float slideDuration = 0.8f; // Thời gian duy trì trạng thái trượt
+    [Header("Lane")]
+    public float laneDistance = 2f;      // khớp với TempPlayerRunner / vị trí Obstacle, Coin
+    public float laneChangeSpeed = 12f;
 
-    // 0 = Làn trái, 1 = Làn giữa, 2 = Làn phải
-    private int currentLane = 1; 
-    private Vector3 targetPosition;
-    
-    // Các biến cho vật lý nhảy và chạm đất
+    [Header("Jump & Slide")]
+    public float jumpForce = 8f;
+    public float gravity = -22f;
+    public float slideDuration = 0.8f;   // chỉnh gần bằng độ dài clip Roll
+    public float slideHeightRatio = 0.5f;
+
+    [Header("Animation")]
+    [SerializeField] private Animator animator;   // Animator của model con
+    [SerializeField] private float fadeTime = 0.1f;
+    [SerializeField] private float jumpLoopDelay = 0.25f; // sau bấy lâu thì chuyển JumpStart -> JumpLoop
+
+    private int currentLane = 1; // 0 trái, 1 giữa, 2 phải
     private float verticalVelocity;
     private bool isGrounded = true;
-    private bool isSliding = false;
-    private float groundY; // Lưu độ cao mặt đất ban đầu
+    private bool isSliding;
+    private bool isDead;
+    private float slideTimer;
+    private float airTime;
+    private bool jumpLoopStarted;
+    private float groundY;
 
-    // Lưu lại kích thước ban đầu để phục hồi sau khi trượt
-    private Vector3 originalScale;
+    private CapsuleCollider col;
+    private float originalHeight;
+    private Vector3 originalCenter;
 
-    void Start()
+    // Tự đặt collider mặc định khi vừa gắn script (nhân vật cao ~1.8, pivot ở chân)
+    private void Reset()
     {
-        targetPosition = transform.position;
-        originalScale = transform.localScale;
-        groundY = transform.position.y; // Lấy Y hiện tại làm mặt đất
+        var c = GetComponent<CapsuleCollider>();
+        c.height = 1.8f;
+        c.radius = 0.35f;
+        c.center = new Vector3(0f, 0.9f, 0f);
+        var rb = GetComponent<Rigidbody>();
+        rb.isKinematic = true;
+        rb.useGravity = false;
     }
 
-    void Update()
+    private void Awake()
     {
-        // 1. Nhận Input đổi làn đường (A / D / Left / Right)
+        col = GetComponent<CapsuleCollider>();
+        originalHeight = col.height;
+        originalCenter = col.center;
+
+        var rb = GetComponent<Rigidbody>();
+        rb.isKinematic = true;
+        rb.useGravity = false;
+
+        if (animator == null) animator = GetComponentInChildren<Animator>();
+    }
+
+    private void Start()
+    {
+        groundY = transform.position.y;
+        Play("Run");
+    }
+
+    private void OnEnable() { GameEvents.OnGameOver += OnGameOver; }
+    private void OnDisable() { GameEvents.OnGameOver -= OnGameOver; }
+
+    private void OnGameOver()
+    {
+        isDead = true;
+        Play("Death");
+    }
+
+    public void Revive()
+    {
+        isDead = false;
+        Play("Run");
+    }
+
+    private void Update()
+    {
+        if (isDead) return;
+
+        HandleInput();
+        HandleSlideTimer();
+        Move();
+    }
+
+    private void HandleInput()
+    {
         if (Input.GetKeyDown(KeyCode.LeftArrow) || Input.GetKeyDown(KeyCode.A))
-        {
-            MoveLane(-1);
-        }
+            currentLane = Mathf.Max(0, currentLane - 1);
         else if (Input.GetKeyDown(KeyCode.RightArrow) || Input.GetKeyDown(KeyCode.D))
-        {
-            MoveLane(1);
-        }
+            currentLane = Mathf.Min(2, currentLane + 1);
 
-        // 2. Nhận Input Nhảy (W / Space / Up)
         if (isGrounded && (Input.GetKeyDown(KeyCode.UpArrow) || Input.GetKeyDown(KeyCode.W) || Input.GetKeyDown(KeyCode.Space)))
-        {
             Jump();
-        }
 
-        // 3. Nhận Input Trượt (S / Down)
         if (!isSliding && (Input.GetKeyDown(KeyCode.DownArrow) || Input.GetKeyDown(KeyCode.S)))
-        {
-            StartCoroutine(Slide());
-        }
+            StartSlide();
+    }
 
-        // 4. Tính toán trọng lực (rơi xuống)
+    private void Move()
+    {
+        float dt = Time.deltaTime;
+        Vector3 pos = transform.position;
+
+        forwardSpeed = Mathf.Min(forwardSpeed + speedIncreasePerSecond * dt, maxSpeed);
+        pos.z += forwardSpeed * dt;
+
+        float targetX = (currentLane - 1) * laneDistance;
+        pos.x = Mathf.MoveTowards(pos.x, targetX, laneChangeSpeed * dt);
+
         if (!isGrounded)
         {
-            verticalVelocity += gravity * Time.deltaTime;
+            airTime += dt;
+            verticalVelocity += gravity * dt;
+            pos.y += verticalVelocity * dt;
+
+            // Chuyển sang pose lơ lửng sau một lúc
+            if (!jumpLoopStarted && !isSliding && airTime >= jumpLoopDelay)
+            {
+                jumpLoopStarted = true;
+                Play("JumpLoop");
+            }
+
+            if (pos.y <= groundY)
+            {
+                pos.y = groundY;
+                verticalVelocity = 0f;
+                isGrounded = true;
+                airTime = 0f;
+                jumpLoopStarted = false;
+                if (!isSliding) Play("Run");
+            }
         }
 
-        // 5. Cập nhật vị trí X theo làn đường
-        targetPosition = transform.position;
-        if (currentLane == 0)
-            targetPosition.x = -laneDistance; // Làn trái
-        else if (currentLane == 1)
-            targetPosition.x = 0;             // Làn giữa
-        else if (currentLane == 2)
-            targetPosition.x = laneDistance;  // Làn phải
-
-        // Tính toán độ cao (Y) dựa trên vận tốc nhảy/rơi
-        targetPosition.y += verticalVelocity * Time.deltaTime;
-
-        // Giới hạn mặt đất (chạm đất thì dừng rơi)
-        if (targetPosition.y <= groundY)
-        {
-            targetPosition.y = groundY;
-            verticalVelocity = 0f;
-            isGrounded = true;
-        }
-        else
-        {
-            isGrounded = false;
-        }
-
-        // 6. Di chuyển tổng hợp: Tiến tới (Z) + Đổi làn (X mượt) + Nhảy (Y)
-        
-        // A) Tịnh tiến tiến tới liên tục (Trục Z)
-        // ĐÃ BỎ: transform.Translate(Vector3.forward * forwardSpeed * Time.deltaTime);
-        // Vì ChunkSpawner đã di chuyển các khối đường về phía sau, nên Player chỉ cần đứng im trên trục Z.
-        
-        // B) Cập nhật vị trí chuyển làn (Trục X) và vị trí cao độ (Trục Y)
-        Vector3 newPos = new Vector3(
-            Mathf.Lerp(transform.position.x, targetPosition.x, laneChangeSpeed * Time.deltaTime), // Đổi làn mượt mà
-            targetPosition.y, // Nhảy lên/Rơi xuống áp dụng trực tiếp công thức vật lý
-            transform.position.z // Giữ nguyên vị trí Z hiện tại
-        );
-        transform.position = newPos;
-    }
-
-    private void MoveLane(int direction)
-    {
-        currentLane += direction;
-        // Giới hạn làn đường từ 0 đến 2
-        currentLane = Mathf.Clamp(currentLane, 0, 2);
+        transform.position = pos;
     }
 
     private void Jump()
     {
+        if (isSliding) EndSlide(false);
         verticalVelocity = jumpForce;
         isGrounded = false;
-        
-        // Hủy trạng thái trượt nếu đang trượt mà bấm nhảy
-        if (isSliding)
-        {
-            StopAllCoroutines();
-            transform.localScale = originalScale;
-            isSliding = false;
-        }
+        airTime = 0f;
+        jumpLoopStarted = false;
+        Play("JumpStart");
     }
 
-    private IEnumerator Slide()
+    private void StartSlide()
     {
         isSliding = true;
-        
-        // 1. Ép nhân vật rơi nhanh xuống đất nếu đang ở trên không
-        if (!isGrounded)
-        {
-            verticalVelocity = -jumpForce; // Lao nhanh xuống
-        }
+        slideTimer = slideDuration;
 
-        // 2. Thay đổi scale Y (chiều cao) giảm xuống để giả lập động tác lộn/trượt
-        Vector3 slideScale = originalScale;
-        slideScale.y = originalScale.y / 2f; 
-        transform.localScale = slideScale;
+        if (!isGrounded) verticalVelocity = -jumpForce; // đang trên không thì lao xuống
 
-        // 3. Chờ hết thời gian trượt
-        yield return new WaitForSeconds(slideDuration);
+        float newHeight = originalHeight * slideHeightRatio;
+        col.height = newHeight;
+        col.center = new Vector3(originalCenter.x,
+                                 originalCenter.y - (originalHeight - newHeight) / 2f,
+                                 originalCenter.z);
+        Play("Roll");
+    }
 
-        // 4. Phục hồi lại chiều cao ban đầu
-        transform.localScale = originalScale;
+    private void HandleSlideTimer()
+    {
+        if (!isSliding) return;
+        slideTimer -= Time.deltaTime;
+        if (slideTimer <= 0f) EndSlide(true);
+    }
+
+    private void EndSlide(bool playRun)
+    {
         isSliding = false;
+        col.height = originalHeight;
+        col.center = originalCenter;
+        if (playRun && isGrounded) Play("Run");
+    }
+
+    private void Play(string state)
+    {
+        if (animator != null) animator.CrossFade(state, fadeTime);
     }
 }
