@@ -12,8 +12,9 @@ GameObject:
   - component: {fileID: 1022479685152299198}
   - component: {fileID: 953919983973006799}
   - component: {fileID: 6268874084494436877}
-  - component: {fileID: 8511808801627843343}
-  - component: {fileID: 6582423493367881518}
+  - component: {fileID: 3598515236801305722}
+  - component: {fileID: 8718877176206280317}
+  - component: {fileID: 3517003757227434382}
   m_Layer: 0
   m_Name: Coin
   m_TagString: Untagged
@@ -34068,16 +34069,22 @@ MeshRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
---- !u!33 &8511808801627843343
-MeshFilter:
+--- !u!114 &3598515236801305722
+MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 5085738852445339118}
-  m_Mesh: {fileID: 0}
---- !u!64 &6582423493367881518
-MeshCollider:
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 752ee2960b9d9af47bbf0e0f05e2ac5f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Coin
+  value: 1
+  rotateSpeed: 180
+--- !u!65 &8718877176206280317
+BoxCollider:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
@@ -34091,10 +34098,17 @@ MeshCollider:
     serializedVersion: 2
     m_Bits: 0
   m_LayerOverridePriority: 0
-  m_IsTrigger: 0
+  m_IsTrigger: 1
   m_ProvidesContacts: 0
   m_Enabled: 1
-  serializedVersion: 5
-  m_Convex: 0
-  m_CookingOptions: 30
+  serializedVersion: 3
+  m_Size: {x: 0.7, y: 0.7, z: 0.0407591}
+  m_Center: {x: 0, y: 0, z: 0.08595154}
+--- !u!33 &3517003757227434382
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5085738852445339118}
   m_Mesh: {fileID: 0}
