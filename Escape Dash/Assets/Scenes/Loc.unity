@@ -538,11 +538,6 @@ Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: f8d9c5cb06deec04f92600cc7ad82377, type: 3}
   m_PrefabInstance: {fileID: 703034299}
   m_PrefabAsset: {fileID: 0}
---- !u!95 &843180812 stripped
-Animator:
-  m_CorrespondingSourceObject: {fileID: 5866666021909216657, guid: f8d9c5cb06deec04f92600cc7ad82377, type: 3}
-  m_PrefabInstance: {fileID: 703034299}
-  m_PrefabAsset: {fileID: 0}
 --- !u!1 &880468968
 GameObject:
   m_ObjectHideFlags: 0
@@ -591,17 +586,11 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerController
   forwardSpeed: 8
-  maxSpeed: 20
-  speedIncreasePerSecond: 0.1
   laneDistance: 2
   laneChangeSpeed: 12
   jumpForce: 8
   gravity: -22
   slideDuration: 1.1
-  slideHeightRatio: 0.5
-  animator: {fileID: 843180812}
-  fadeTime: 0.1
-  jumpLoopDelay: 0.25
 --- !u!54 &880468971
 Rigidbody:
   m_ObjectHideFlags: 0
