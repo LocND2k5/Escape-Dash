@@ -8,8 +8,8 @@ public class ChunkSpawner : MonoBehaviour
     [SerializeField] Chunk[] chunkPrefabs;       // random chunks (shuffle bag)
     [SerializeField] int copiesPerChunk = 1;     // instances created per chunk at load; never more during play
     [Header("Speed")]
-    [SerializeField] float startSpeed = 3f;
-    [SerializeField] float maxSpeed = 10f;
+    [SerializeField] float startSpeed = 10f;
+    [SerializeField] float maxSpeed = 30f;
     [SerializeField] float acceleration = 0.1f;  // m/s gained every second
     [Header("Spawning")]
     [SerializeField] int minChunksAhead = 3;     // chunks whose end is still ahead of the player
@@ -194,6 +194,7 @@ public class ChunkSpawner : MonoBehaviour
     {
         if (!HasFree(prefab)) return null;
         Chunk c = pools[prefab].Dequeue();
+        c.ResetState();                 // bring back coins that were collected last time
         c.gameObject.SetActive(true);
         return c;
     }
