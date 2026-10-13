@@ -13,7 +13,6 @@ GameObject:
   - component: {fileID: 6437467214059190770}
   - component: {fileID: 2490500570107774579}
   - component: {fileID: 2936611452372466509}
-  - component: {fileID: 4358192541230722532}
   m_Layer: 0
   m_Name: Body
   m_TagString: Untagged
@@ -334,28 +333,6 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2669690645299144051}
   m_Mesh: {fileID: 0}
---- !u!64 &4358192541230722532
-MeshCollider:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2669690645299144051}
-  m_Material: {fileID: 0}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_LayerOverridePriority: 0
-  m_IsTrigger: 0
-  m_ProvidesContacts: 0
-  m_Enabled: 1
-  serializedVersion: 5
-  m_Convex: 0
-  m_CookingOptions: 30
-  m_Mesh: {fileID: 0}
 --- !u!1 &2682941072077173769
 GameObject:
   m_ObjectHideFlags: 0
@@ -369,7 +346,6 @@ GameObject:
   - component: {fileID: 6945602381577432320}
   - component: {fileID: 3369626191325203976}
   - component: {fileID: 193692528937263279}
-  - component: {fileID: 1913377121252465101}
   m_Layer: 0
   m_Name: head
   m_TagString: Untagged
@@ -690,28 +666,6 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2682941072077173769}
   m_Mesh: {fileID: 0}
---- !u!64 &1913377121252465101
-MeshCollider:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2682941072077173769}
-  m_Material: {fileID: 0}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_LayerOverridePriority: 0
-  m_IsTrigger: 0
-  m_ProvidesContacts: 0
-  m_Enabled: 1
-  serializedVersion: 5
-  m_Convex: 0
-  m_CookingOptions: 30
-  m_Mesh: {fileID: 0}
 --- !u!1 &7128488073166736864
 GameObject:
   m_ObjectHideFlags: 0
@@ -722,9 +676,11 @@ GameObject:
   m_Component:
   - component: {fileID: 3941349208907970208}
   - component: {fileID: 1436492580952223195}
+  - component: {fileID: 1400579937421181723}
+  - component: {fileID: 3277713766837268069}
   m_Layer: 0
   m_Name: Character
-  m_TagString: Untagged
+  m_TagString: Player
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -767,3 +723,48 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 0.3347136, y: 1.0029027, z: 0.26436016}
   m_Center: {x: -0.07676683, y: 0.23767781, z: -0.1049182}
+--- !u!114 &1400579937421181723
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7128488073166736864}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: be8d23218f18bb04db8bc69e7087fb0b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerController
+  forwardSpeed: 10
+  laneDistance: 2
+  laneChangeSpeed: 10
+  jumpForce: 8
+  gravity: -20
+  slideDuration: 0.8
+--- !u!54 &3277713766837268069
+Rigidbody:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7128488073166736864}
+  serializedVersion: 5
+  m_Mass: 1
+  m_LinearDamping: 0
+  m_AngularDamping: 0.05
+  m_CenterOfMass: {x: 0, y: 0, z: 0}
+  m_InertiaTensor: {x: 1, y: 1, z: 1}
+  m_InertiaRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ImplicitCom: 1
+  m_ImplicitTensor: 1
+  m_UseGravity: 1
+  m_IsKinematic: 0
+  m_Interpolate: 0
+  m_Constraints: 0
+  m_CollisionDetection: 0

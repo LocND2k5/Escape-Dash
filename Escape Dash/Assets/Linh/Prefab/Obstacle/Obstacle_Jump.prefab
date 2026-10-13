@@ -13,7 +13,8 @@ GameObject:
   - component: {fileID: 7555707477563875994}
   - component: {fileID: 3042042109675017288}
   - component: {fileID: 6378019451807813278}
-  - component: {fileID: 2711597094693503000}
+  - component: {fileID: 1800583765063754382}
+  - component: {fileID: 1125130959186188078}
   m_Layer: 0
   m_Name: Obstacle_Jump
   m_TagString: Untagged
@@ -334,8 +335,8 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 3628689892282755982}
   m_Mesh: {fileID: 0}
---- !u!64 &2711597094693503000
-MeshCollider:
+--- !u!65 &1800583765063754382
+BoxCollider:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
@@ -349,10 +350,21 @@ MeshCollider:
     serializedVersion: 2
     m_Bits: 0
   m_LayerOverridePriority: 0
-  m_IsTrigger: 0
+  m_IsTrigger: 1
   m_ProvidesContacts: 0
   m_Enabled: 1
-  serializedVersion: 5
-  m_Convex: 0
-  m_CookingOptions: 30
-  m_Mesh: {fileID: 0}
+  serializedVersion: 3
+  m_Size: {x: 2, y: 0.4, z: 0.3}
+  m_Center: {x: 0, y: 0, z: 0}
+--- !u!114 &1125130959186188078
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3628689892282755982}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 26645b910bafcb94c800296c3230a443, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Obstacle

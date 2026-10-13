@@ -1,3 +1,4 @@
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -6,7 +7,11 @@ public class ChunkSpawner : MonoBehaviour
     [SerializeField] Chunk startChunkPrefab;     // optional: empty road placed first, NOT part of the random bag
     [SerializeField] Chunk[] chunkPrefabs;       // random chunks (shuffle bag)
     [SerializeField] int copiesPerChunk = 1;     // instances created per chunk at load; never more during play
-    [SerializeField] float speed = 10f;
+    [Header("Speed")]
+    [SerializeField] float startSpeed = 3f;
+    [SerializeField] float maxSpeed = 10f;
+    [SerializeField] float acceleration = 0.1f;  // m/s gained every second
+    [Header("Spawning")]
     [SerializeField] int minChunksAhead = 3;     // chunks whose end is still ahead of the player
     [SerializeField] float playerZ = 0f;
     [SerializeField] float despawnBehind = 20f;  // recycle once a chunk's end is this far behind the player
@@ -17,21 +22,57 @@ public class ChunkSpawner : MonoBehaviour
     readonly Dictionary<Chunk, Chunk> sourceOf = new Dictionary<Chunk, Chunk>();             // instance -> prefab
     readonly List<int> bag = new List<int>();
     int lastIndex = -1;
+    bool ready;   // true once all chunks are created
 
-    void Start()
+    public float Speed { get; private set; }      // current speed (m/s)
+    public float Distance { get; private set; }   // meters travelled since the run started
+    public bool Running { get; private set; } = true;
+
+    void OnEnable() => GameEvents.OnGameOver += Stop;
+    void OnDisable() => GameEvents.OnGameOver -= Stop;
+
+    public void Stop() => Running = false;
+    public void Resume() => Running = true;        // e.g. after revive
+    public void ResetSpeed() => Speed = startSpeed;
+
+    IEnumerator Start()
     {
-        // Create every instance once, up front, so nothing is instantiated during play (no lag spikes)
-        if (startChunkPrefab != null) Prewarm(startChunkPrefab, 1);
+        Speed = startSpeed;
+
+        // Create one instance per frame so the cost is spread out instead of one big freeze
+        if (startChunkPrefab != null)
+        {
+            Prewarm(startChunkPrefab, 1);
+            yield return null;
+        }
+
         if (chunkPrefabs != null)
-            foreach (var p in chunkPrefabs) Prewarm(p, Mathf.Max(1, copiesPerChunk));
+        {
+            foreach (var p in chunkPrefabs)
+            {
+                for (int i = 0; i < Mathf.Max(1, copiesPerChunk); i++)
+                {
+                    Prewarm(p, 1);
+                    yield return null;
+                }
+            }
+        }
 
         if (startChunkPrefab != null) Place(startChunkPrefab);
+        ready = true;
     }
 
     void Update()
     {
+        if (!ready || !Running) return;
+
+        // 0. Speed up gradually, and count the distance travelled
+        Speed = Mathf.MoveTowards(Speed, maxSpeed, acceleration * Time.deltaTime);
+        float dz = Speed * Time.deltaTime;
+        Distance += dz;
+
         // 1. Move all chunks toward the player
-        Vector3 step = Vector3.back * (speed * Time.deltaTime);
+        Vector3 step = Vector3.back * dz;
         foreach (var c in active) c.transform.position += step;
 
         // 2. Recycle chunks fully behind the player
