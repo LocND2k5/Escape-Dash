@@ -9,6 +9,30 @@ public class Chunk : MonoBehaviour
     public float Length => length;
     public float EndZ => transform.position.z + length;
 
+    // Remember which child objects (coins, obstacles...) start active, so a reused chunk can be restored
+    GameObject[] children;
+    bool[] startedActive;
+
+    void Awake()
+    {
+        var all = GetComponentsInChildren<Transform>(true);
+        children = new GameObject[all.Length];
+        startedActive = new bool[all.Length];
+        for (int i = 0; i < all.Length; i++)
+        {
+            children[i] = all[i].gameObject;
+            startedActive[i] = children[i].activeSelf;
+        }
+    }
+
+    // Called by the spawner every time the chunk is reused: brings back collected coins etc.
+    public void ResetState()
+    {
+        for (int i = 0; i < children.Length; i++)
+            if (children[i] != gameObject)
+                children[i].SetActive(startedActive[i]);
+    }
+
     // Yellow lines show where the code thinks the chunk starts and ends.
     // If they don't sit on the road's two ends, fix the prefab (not the code).
     void OnDrawGizmos()
