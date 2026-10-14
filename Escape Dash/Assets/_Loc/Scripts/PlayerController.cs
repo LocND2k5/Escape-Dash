@@ -1,196 +1,279 @@
 using UnityEngine;
-using System.Collections; // Cần thiết để dùng Coroutine cho thời gian trượt
 
+// Gắn lên Player (root). Pivot của Player nằm ở CHÂN. Tag = "Player".
+// Cần: CapsuleCollider (không trigger) + Rigidbody (Is Kinematic). Model là object con.
+// KHÔNG gắn chung với TempPlayerRunner.
+//
+// MAP CHẠY, PLAYER ĐỨNG YÊN TRÊN TRỤC Z:
+// Player chỉ đổi làn (X) và nhảy (Y). TrackManager đọc CurrentSpeed để kéo các khúc đường
+// về phía Player, nên mọi tốc độ (tăng tốc dần, giảm tốc khi vấp) đều nằm ở script này.
+//
+// Animator: state tên đúng như sau (không cần transition): Run, JumpStart, JumpLoop, Roll, Hit, Death
+//
+// Luật chơi:
+// - Chạm Obstacle lần 1: giảm tốc, phát animation Hit, Bull áp sát.
+// - Chạm Obstacle lần nữa trong dangerDuration giây: Bull bắt được -> Game Over.
+[RequireComponent(typeof(CapsuleCollider))]
+[RequireComponent(typeof(Rigidbody))]
 public class PlayerController : MonoBehaviour
 {
-    [Header("Movement Settings")]
-    public float forwardSpeed = 10f; // Tốc độ chạy thẳng
-    public float laneDistance = 2.5f; // Khoảng cách giữa các làn (Lane)
-    public float laneChangeSpeed = 10f; // Tốc độ chuyển làn
+    [Header("Speed (tốc độ cuộn của map)")]
+    public float forwardSpeed = 8f;
+    public float maxSpeed = 20f;
+    public float speedIncreasePerSecond = 0.1f;
 
-    [Header("Jump & Slide Settings")]
-    public float jumpForce = 8f; // Lực nhảy lên
-    public float gravity = -20f; // Trọng lực (Lực kéo xuống)
-    public float slideDuration = 0.8f; // Thời gian duy trì trạng thái trượt
+    [Header("Lane")]
+    public float laneDistance = 2f;
+    public float laneChangeSpeed = 12f;
 
-    [Header("Animation Settings")]
-    [SerializeField] private Animator anim; // Animator của nhân vật
+    [Header("Jump & Slide")]
+    public float jumpForce = 8f;
+    public float gravity = -22f;
+    public float slideDuration = 0.8f;
+    public float slideHeightRatio = 0.5f;
 
-    // 0 = Làn trái, 1 = Làn giữa, 2 = Làn phải
-    private int currentLane = 1; 
-    private Vector3 targetPosition;
-    
-    // Các biến cho vật lý nhảy và chạm đất
-    private float verticalVelocity;
-    private bool isGrounded = true;
-    private bool isSliding = false;
-    private bool isDead = false;
-    private float groundY; // Lưu độ cao mặt đất ban đầu
+    [Header("Hit Penalty (vấp Obstacle)")]
+    public float hitSlowFactor = 0.4f;     // tốc độ còn bao nhiêu % ngay khi vấp (0.4 = 40%)
+    public float slowDuration = 2f;        // thời gian tốc độ hồi phục về bình thường
+    public float dangerDuration = 4f;      // vấp lần nữa trong khoảng này -> bị Bull bắt
+    public float invulnerableTime = 0.8f;  // miễn nhiễm ngắn sau khi vấp (tránh bị tính 2 lần)
+    public float hitAnimDuration = 0.6f;   // thời gian phát animation Hit
 
-    // Lưu lại kích thước ban đầu để phục hồi sau khi trượt
-    private Vector3 originalScale;
+    [Header("Animation")]
+    [SerializeField] private Animator animator;
+    [SerializeField] private float fadeTime = 0.1f;
+    [SerializeField] private float jumpLoopDelay = 0.25f;
 
-    void Start()
+    // Tốc độ thực tế mà map đang cuộn (đã tính giảm tốc khi vấp; = 0 khi đã thua)
+    public float CurrentSpeed
     {
-        targetPosition = transform.position;
-        originalScale = transform.localScale;
-        groundY = transform.position.y; // Lấy Y hiện tại làm mặt đất
-
-        // Tự động tìm Animator nếu chưa gán trong Inspector (tìm cả ở object con)
-        if (anim == null)
+        get
         {
-            anim = GetComponentInChildren<Animator>();
+            if (isDead) return 0f;
+            float multiplier = 1f;
+            if (slowTimer > 0f)
+                multiplier = Mathf.Lerp(1f, hitSlowFactor, slowTimer / slowDuration);
+            return forwardSpeed * multiplier;
         }
     }
 
-    void Update()
+    private int currentLane = 1;
+    private float verticalVelocity;
+    private bool isGrounded = true;
+    private bool isSliding;
+    private bool isDead;
+    private float slideTimer;
+    private float airTime;
+    private bool jumpLoopStarted;
+    private float groundY;
+
+    private float slowTimer;
+    private float dangerTimer;
+    private float invulnTimer;
+    private float hitAnimTimer;
+
+    private CapsuleCollider col;
+    private float originalHeight;
+    private Vector3 originalCenter;
+
+    private void Reset()
+    {
+        var c = GetComponent<CapsuleCollider>();
+        c.height = 1.8f;
+        c.radius = 0.35f;
+        c.center = new Vector3(0f, 0.9f, 0f);
+        var rb = GetComponent<Rigidbody>();
+        rb.isKinematic = true;
+        rb.useGravity = false;
+    }
+
+    private void Awake()
+    {
+        col = GetComponent<CapsuleCollider>();
+        originalHeight = col.height;
+        originalCenter = col.center;
+
+        var rb = GetComponent<Rigidbody>();
+        rb.isKinematic = true;
+        rb.useGravity = false;
+
+        if (animator == null) animator = GetComponentInChildren<Animator>();
+    }
+
+    private void Start()
+    {
+        groundY = transform.position.y;
+        Play("Run");
+    }
+
+    private void OnEnable()
+    {
+        GameEvents.OnGameOver += OnGameOver;
+        GameEvents.OnPlayerHit += HandleHit;
+    }
+
+    private void OnDisable()
+    {
+        GameEvents.OnGameOver -= OnGameOver;
+        GameEvents.OnPlayerHit -= HandleHit;
+    }
+
+    private void OnGameOver()
+    {
+        isDead = true;
+        Play("Death");
+    }
+
+    public void Revive()
+    {
+        isDead = false;
+        slowTimer = dangerTimer = invulnTimer = hitAnimTimer = 0f;
+        Play("Run");
+    }
+
+    private void HandleHit()
+    {
+        if (isDead || invulnTimer > 0f) return;
+
+        // Vấp lần nữa khi Bull còn đang áp sát -> bị bắt
+        if (dangerTimer > 0f)
+        {
+            GameEvents.RaiseGameOver();
+            return;
+        }
+
+        slowTimer = slowDuration;
+        dangerTimer = dangerDuration;
+        invulnTimer = invulnerableTime;
+
+        if (isGrounded && !isSliding)
+        {
+            hitAnimTimer = hitAnimDuration;
+            Play("Hit");
+        }
+
+        GameEvents.RaisePlayerStumbled(dangerDuration);
+    }
+
+    private void Update()
     {
         if (isDead) return;
 
-        // 1. Nhận Input đổi làn đường (A / D / Left / Right)
-        if (Input.GetKeyDown(KeyCode.LeftArrow) || Input.GetKeyDown(KeyCode.A))
-        {
-            MoveLane(-1);
-        }
-        else if (Input.GetKeyDown(KeyCode.RightArrow) || Input.GetKeyDown(KeyCode.D))
-        {
-            MoveLane(1);
-        }
-
-        // 2. Nhận Input Nhảy (W / Space / Up)
-        if (isGrounded && (Input.GetKeyDown(KeyCode.UpArrow) || Input.GetKeyDown(KeyCode.W) || Input.GetKeyDown(KeyCode.Space)))
-        {
-            Jump();
-        }
-
-        // 3. Nhận Input Trượt (S / Down)
-        if (!isSliding && (Input.GetKeyDown(KeyCode.DownArrow) || Input.GetKeyDown(KeyCode.S)))
-        {
-            StartCoroutine(Slide());
-        }
-
-        // 4. Tính toán trọng lực (rơi xuống)
-        if (!isGrounded)
-        {
-            verticalVelocity += gravity * Time.deltaTime;
-        }
-
-        // 5. Cập nhật vị trí X theo làn đường
-        targetPosition = transform.position;
-        if (currentLane == 0)
-            targetPosition.x = -laneDistance; // Làn trái
-        else if (currentLane == 1)
-            targetPosition.x = 0;             // Làn giữa
-        else if (currentLane == 2)
-            targetPosition.x = laneDistance;  // Làn phải
-
-        // Tính toán độ cao (Y) dựa trên vận tốc nhảy/rơi
-        targetPosition.y += verticalVelocity * Time.deltaTime;
-
-        // Giới hạn mặt đất (chạm đất thì dừng rơi)
-        if (targetPosition.y <= groundY)
-        {
-            targetPosition.y = groundY;
-            verticalVelocity = 0f;
-
-            // Nếu vừa tiếp đất từ cú nhảy -> chuyển về Run
-            if (!isGrounded)
-            {
-                isGrounded = true;
-                if (!isSliding && anim != null)
-                {
-                    anim.Play("Run");
-                }
-            }
-        }
-        else
-        {
-            isGrounded = false;
-        }
-
-        // 6. Di chuyển tổng hợp: Tiến tới (Z) + Đổi làn (X mượt) + Nhảy (Y)
-        
-        // A) Tịnh tiến tiến tới liên tục (Trục Z)
-        // ĐÃ BỎ: transform.Translate(Vector3.forward * forwardSpeed * Time.deltaTime);
-        // Vì ChunkSpawner đã di chuyển các khối đường về phía sau, nên Player chỉ cần đứng im trên trục Z.
-        
-        // B) Cập nhật vị trí chuyển làn (Trục X) và vị trí cao độ (Trục Y)
-        Vector3 newPos = new Vector3(
-            Mathf.Lerp(transform.position.x, targetPosition.x, laneChangeSpeed * Time.deltaTime), // Đổi làn mượt mà
-            targetPosition.y, // Nhảy lên/Rơi xuống áp dụng trực tiếp công thức vật lý
-            transform.position.z // Giữ nguyên vị trí Z hiện tại
-        );
-        transform.position = newPos;
+        TickTimers();
+        HandleInput();
+        HandleSlideTimer();
+        Move();
     }
 
-    private void MoveLane(int direction)
+    private void TickTimers()
     {
-        currentLane += direction;
-        // Giới hạn làn đường từ 0 đến 2
-        currentLane = Mathf.Clamp(currentLane, 0, 2);
+        float dt = Time.deltaTime;
+        if (slowTimer > 0f) slowTimer -= dt;
+        if (dangerTimer > 0f) dangerTimer -= dt;
+        if (invulnTimer > 0f) invulnTimer -= dt;
+
+        if (hitAnimTimer > 0f)
+        {
+            hitAnimTimer -= dt;
+            if (hitAnimTimer <= 0f && isGrounded && !isSliding) Play("Run");
+        }
+    }
+
+    private void HandleInput()
+    {
+        if (Input.GetKeyDown(KeyCode.LeftArrow) || Input.GetKeyDown(KeyCode.A))
+            currentLane = Mathf.Max(0, currentLane - 1);
+        else if (Input.GetKeyDown(KeyCode.RightArrow) || Input.GetKeyDown(KeyCode.D))
+            currentLane = Mathf.Min(2, currentLane + 1);
+
+        if (isGrounded && (Input.GetKeyDown(KeyCode.UpArrow) || Input.GetKeyDown(KeyCode.W) || Input.GetKeyDown(KeyCode.Space)))
+            Jump();
+
+        if (!isSliding && (Input.GetKeyDown(KeyCode.DownArrow) || Input.GetKeyDown(KeyCode.S)))
+            StartSlide();
+    }
+
+    private void Move()
+    {
+        float dt = Time.deltaTime;
+        Vector3 pos = transform.position;
+
+        // Tăng tốc dần (map cuộn nhanh dần). Player KHÔNG di chuyển theo Z.
+        forwardSpeed = Mathf.Min(forwardSpeed + speedIncreasePerSecond * dt, maxSpeed);
+
+        float targetX = (currentLane - 1) * laneDistance;
+        pos.x = Mathf.MoveTowards(pos.x, targetX, laneChangeSpeed * dt);
+
+        if (!isGrounded)
+        {
+            airTime += dt;
+            verticalVelocity += gravity * dt;
+            pos.y += verticalVelocity * dt;
+
+            if (!jumpLoopStarted && !isSliding && airTime >= jumpLoopDelay)
+            {
+                jumpLoopStarted = true;
+                Play("JumpLoop");
+            }
+
+            if (pos.y <= groundY)
+            {
+                pos.y = groundY;
+                verticalVelocity = 0f;
+                isGrounded = true;
+                airTime = 0f;
+                jumpLoopStarted = false;
+                if (!isSliding) Play("Run");
+            }
+        }
+
+        transform.position = pos;
     }
 
     private void Jump()
     {
+        if (isSliding) EndSlide(false);
+        hitAnimTimer = 0f;
         verticalVelocity = jumpForce;
         isGrounded = false;
-        
-        if (anim != null)
-        {
-            anim.Play("JumpStart");
-        }
-
-        // Hủy trạng thái trượt nếu đang trượt mà bấm nhảy
-        if (isSliding)
-        {
-            StopAllCoroutines();
-            transform.localScale = originalScale;
-            isSliding = false;
-        }
+        airTime = 0f;
+        jumpLoopStarted = false;
+        Play("JumpStart");
     }
 
-    private IEnumerator Slide()
+    private void StartSlide()
     {
         isSliding = true;
-        
-        if (anim != null)
-        {
-            anim.Play("Roll");
-        }
+        slideTimer = slideDuration;
+        hitAnimTimer = 0f;
 
-        // 1. Ép nhân vật rơi nhanh xuống đất nếu đang ở trên không
-        if (!isGrounded)
-        {
-            verticalVelocity = -jumpForce; // Lao nhanh xuống
-        }
+        if (!isGrounded) verticalVelocity = -jumpForce;
 
-        // 2. Thay đổi scale Y (chiều cao) giảm xuống để giả lập động tác lộn/trượt
-        Vector3 slideScale = originalScale;
-        slideScale.y = originalScale.y / 2f; 
-        transform.localScale = slideScale;
-
-        // 3. Chờ hết thời gian trượt
-        yield return new WaitForSeconds(slideDuration);
-
-        // 4. Phục hồi lại chiều cao ban đầu
-        transform.localScale = originalScale;
-        isSliding = false;
-
-        // Trở lại trạng thái chạy nếu đang ở trên mặt đất
-        if (isGrounded && anim != null)
-        {
-            anim.Play("Run");
-        }
+        float newHeight = originalHeight * slideHeightRatio;
+        col.height = newHeight;
+        col.center = new Vector3(originalCenter.x,
+                                 originalCenter.y - (originalHeight - newHeight) / 2f,
+                                 originalCenter.z);
+        Play("Roll");
     }
 
-    public void Die()
+    private void HandleSlideTimer()
     {
-        if (isDead) return;
-        isDead = true;
+        if (!isSliding) return;
+        slideTimer -= Time.deltaTime;
+        if (slideTimer <= 0f) EndSlide(true);
+    }
 
-        if (anim != null)
-        {
-            anim.Play("Death");
-        }
+    private void EndSlide(bool playRun)
+    {
+        isSliding = false;
+        col.height = originalHeight;
+        col.center = originalCenter;
+        if (playRun && isGrounded) Play("Run");
+    }
+
+    private void Play(string state)
+    {
+        if (animator != null) animator.CrossFade(state, fadeTime);
     }
 }

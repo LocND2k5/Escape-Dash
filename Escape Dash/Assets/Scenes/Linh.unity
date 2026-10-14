@@ -130,7 +130,7 @@ GameObject:
   - component: {fileID: 80863725}
   - component: {fileID: 80863726}
   m_Layer: 0
-  m_Name: ScoreManager
+  m_Name: ScoreManage
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -203,7 +203,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 0, y: 1}
-  m_AnchoredPosition: {x: 7.200012, y: -24.4}
+  m_AnchoredPosition: {x: 56, y: -70}
   m_SizeDelta: {x: 500, y: 60}
   m_Pivot: {x: 0, y: 1}
 --- !u!114 &81297769
@@ -255,8 +255,8 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 10
-  m_fontSizeBase: 10
+  m_fontSize: 36
+  m_fontSizeBase: 36
   m_fontWeight: 400
   m_enableAutoSizing: 0
   m_fontSizeMin: 18
@@ -345,7 +345,7 @@ MonoBehaviour:
   m_StreamingVersion: 20241001
   m_LegacyPriority: 0
   Target:
-    TrackingTarget: {fileID: 0}
+    TrackingTarget: {fileID: 1746150112}
     LookAtTarget: {fileID: 0}
     CustomLookAtTarget: 0
   Lens:
@@ -521,7 +521,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 0, y: 1}
-  m_AnchoredPosition: {x: 7.200012, y: -3.03}
+  m_AnchoredPosition: {x: 56, y: 0}
   m_SizeDelta: {x: 300, y: 60}
   m_Pivot: {x: 0, y: 1}
 --- !u!114 &1377868821
@@ -573,8 +573,8 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 10
-  m_fontSizeBase: 10
+  m_fontSize: 36
+  m_fontSizeBase: 36
   m_fontWeight: 400
   m_enableAutoSizing: 0
   m_fontSizeMin: 18
@@ -694,11 +694,6 @@ PrefabInstance:
 --- !u!4 &1467736831 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: f8d9c5cb06deec04f92600cc7ad82377, type: 3}
-  m_PrefabInstance: {fileID: 1467736830}
-  m_PrefabAsset: {fileID: 0}
---- !u!95 &1467736832 stripped
-Animator:
-  m_CorrespondingSourceObject: {fileID: 5866666021909216657, guid: f8d9c5cb06deec04f92600cc7ad82377, type: 3}
   m_PrefabInstance: {fileID: 1467736830}
   m_PrefabAsset: {fileID: 0}
 --- !u!1 &1740215541
@@ -884,7 +879,7 @@ GameObject:
   - component: {fileID: 1746150110}
   - component: {fileID: 1746150109}
   m_Layer: 0
-  m_Name: Player
+  m_Name: 'Player '
   m_TagString: Player
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -903,12 +898,22 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerController
   forwardSpeed: 8
+  maxSpeed: 20
+  speedIncreasePerSecond: 0.1
   laneDistance: 2
   laneChangeSpeed: 12
   jumpForce: 8
   gravity: -22
   slideDuration: 1.1
-  anim: {fileID: 1467736832}
+  slideHeightRatio: 0.5
+  hitSlowFactor: 0.4
+  slowDuration: 2
+  dangerDuration: 4
+  invulnerableTime: 0.8
+  hitAnimDuration: 0.6
+  animator: {fileID: 0}
+  fadeTime: 0.1
+  jumpLoopDelay: 0.25
 --- !u!54 &1746150110
 Rigidbody:
   m_ObjectHideFlags: 0
@@ -1136,7 +1141,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 0, y: 1}
-  m_AnchoredPosition: {x: 7.200012, y: -48.7}
+  m_AnchoredPosition: {x: 56, y: -140}
   m_SizeDelta: {x: 300, y: 60}
   m_Pivot: {x: 0, y: 1}
 --- !u!114 &1832668434
@@ -1188,8 +1193,8 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 10
-  m_fontSizeBase: 10
+  m_fontSize: 36
+  m_fontSizeBase: 36
   m_fontWeight: 400
   m_enableAutoSizing: 0
   m_fontSizeMin: 18
