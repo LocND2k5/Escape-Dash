@@ -13,6 +13,9 @@ public class PlayerController : MonoBehaviour
     public float gravity = -20f; // Trọng lực (Lực kéo xuống)
     public float slideDuration = 0.8f; // Thời gian duy trì trạng thái trượt
 
+    [Header("Animation Settings")]
+    [SerializeField] private Animator anim; // Animator của nhân vật
+
     // 0 = Làn trái, 1 = Làn giữa, 2 = Làn phải
     private int currentLane = 1; 
     private Vector3 targetPosition;
@@ -21,6 +24,7 @@ public class PlayerController : MonoBehaviour
     private float verticalVelocity;
     private bool isGrounded = true;
     private bool isSliding = false;
+    private bool isDead = false;
     private float groundY; // Lưu độ cao mặt đất ban đầu
 
     // Lưu lại kích thước ban đầu để phục hồi sau khi trượt
@@ -31,10 +35,18 @@ public class PlayerController : MonoBehaviour
         targetPosition = transform.position;
         originalScale = transform.localScale;
         groundY = transform.position.y; // Lấy Y hiện tại làm mặt đất
+
+        // Tự động tìm Animator nếu chưa gán trong Inspector (tìm cả ở object con)
+        if (anim == null)
+        {
+            anim = GetComponentInChildren<Animator>();
+        }
     }
 
     void Update()
     {
+        if (isDead) return;
+
         // 1. Nhận Input đổi làn đường (A / D / Left / Right)
         if (Input.GetKeyDown(KeyCode.LeftArrow) || Input.GetKeyDown(KeyCode.A))
         {
@@ -80,7 +92,16 @@ public class PlayerController : MonoBehaviour
         {
             targetPosition.y = groundY;
             verticalVelocity = 0f;
-            isGrounded = true;
+
+            // Nếu vừa tiếp đất từ cú nhảy -> chuyển về Run
+            if (!isGrounded)
+            {
+                isGrounded = true;
+                if (!isSliding && anim != null)
+                {
+                    anim.Play("Run");
+                }
+            }
         }
         else
         {
@@ -114,6 +135,11 @@ public class PlayerController : MonoBehaviour
         verticalVelocity = jumpForce;
         isGrounded = false;
         
+        if (anim != null)
+        {
+            anim.Play("JumpStart");
+        }
+
         // Hủy trạng thái trượt nếu đang trượt mà bấm nhảy
         if (isSliding)
         {
@@ -127,6 +153,11 @@ public class PlayerController : MonoBehaviour
     {
         isSliding = true;
         
+        if (anim != null)
+        {
+            anim.Play("Roll");
+        }
+
         // 1. Ép nhân vật rơi nhanh xuống đất nếu đang ở trên không
         if (!isGrounded)
         {
@@ -144,5 +175,22 @@ public class PlayerController : MonoBehaviour
         // 4. Phục hồi lại chiều cao ban đầu
         transform.localScale = originalScale;
         isSliding = false;
+
+        // Trở lại trạng thái chạy nếu đang ở trên mặt đất
+        if (isGrounded && anim != null)
+        {
+            anim.Play("Run");
+        }
+    }
+
+    public void Die()
+    {
+        if (isDead) return;
+        isDead = true;
+
+        if (anim != null)
+        {
+            anim.Play("Death");
+        }
     }
 }
