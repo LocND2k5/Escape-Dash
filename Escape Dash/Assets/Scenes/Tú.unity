@@ -354,9 +354,11 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ScoreManager
   player: {fileID: 0}
+  trackManager: {fileID: 0}
   scoreText: {fileID: 1971531177}
   coinText: {fileID: 2008076383}
   distanceText: {fileID: 39962594}
+  highScoreText: {fileID: 0}
   pointsPerMeter: 1
   pointsPerCoin: 10
 --- !u!4 &136870664
@@ -475,10 +477,10 @@ MonoBehaviour:
   - {fileID: 47889682}
   - {fileID: 1561036255}
   - {fileID: 1287029650}
-  zSpawn: 0
   trackLength: 30
   numberOfTracks: 3
-  playerTransform: {fileID: 0}
+  deleteBehindDistance: 20
+  player: {fileID: 0}
 --- !u!4 &281187306
 Transform:
   m_ObjectHideFlags: 0
@@ -853,11 +855,6 @@ MonoBehaviour:
 --- !u!4 &553520976 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: d8e13c842686cf24b9562664109cc20e, type: 3}
-  m_PrefabInstance: {fileID: 2090785548}
-  m_PrefabAsset: {fileID: 0}
---- !u!95 &553520977 stripped
-Animator:
-  m_CorrespondingSourceObject: {fileID: 5866666021909216657, guid: d8e13c842686cf24b9562664109cc20e, type: 3}
   m_PrefabInstance: {fileID: 2090785548}
   m_PrefabAsset: {fileID: 0}
 --- !u!1001 &812835333
@@ -1450,6 +1447,11 @@ MonoBehaviour:
   gravity: -22
   slideDuration: 1.1
   slideHeightRatio: 0.5
+  hitSlowFactor: 0.4
+  slowDuration: 2
+  dangerDuration: 4
+  invulnerableTime: 0.8
+  hitAnimDuration: 0.6
   animator: {fileID: 354892259}
   fadeTime: 0.1
   jumpLoopDelay: 0.25
@@ -1868,7 +1870,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 2038364208}
-  - component: {fileID: 2038364207}
   m_Layer: 0
   m_Name: Bull
   m_TagString: Untagged
@@ -1876,27 +1877,6 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!114 &2038364207
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2038364206}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 72c4d3b9476285944afc4adde3bc91c2, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::ChaserController
-  player: {fileID: 1699029121}
-  animator: {fileID: 553520977}
-  normalGap: 7
-  stumbleGap: 2.5
-  caughtGap: 1.2
-  stumbleDuration: 4
-  closeSpeed: 10
-  recoverSpeed: 1.5
-  xFollowSpeed: 5
 --- !u!4 &2038364208
 Transform:
   m_ObjectHideFlags: 0

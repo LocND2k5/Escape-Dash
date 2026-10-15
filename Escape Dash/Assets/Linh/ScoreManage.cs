@@ -14,6 +14,7 @@ public class ScoreManage : MonoBehaviour
     [SerializeField] private TMP_Text scoreText;
     [SerializeField] private TMP_Text coinText;
     [SerializeField] private TMP_Text distanceText;
+    // MỚI: đã bỏ highScoreText, GameScene không hiện High Score (chỉ hiện ở MenuScene / Game Over)
 
     [Header("Settings")]
     [SerializeField] private float pointsPerMeter = 1f;
@@ -34,8 +35,15 @@ public class ScoreManage : MonoBehaviour
     private int shownCoins = -1;
     private int shownMeters = -1;
 
-    private const string HighScoreKey = "HighScore";
-    private const string BestDistanceKey = "BestDistance";
+    // MỚI: public để scene Menu (GameOverUI, MainMenu) đọc được cùng key
+    public const string HighScoreKey = "HighScore";
+    public const string BestDistanceKey = "BestDistance";
+
+    // MỚI: kết quả của ván vừa chơi, để scene Menu hiển thị sau khi chết
+    public const string LastScoreKey = "LastScore";
+    public const string LastDistanceKey = "LastDistance";
+    public const string LastCoinsKey = "LastCoins";
+    public const string NewHighScoreKey = "NewHighScore"; // 1 = ván vừa rồi phá kỷ lục
 
     private void Awake()
     {
@@ -109,6 +117,13 @@ public class ScoreManage : MonoBehaviour
             BestDistance = Distance;
             PlayerPrefs.SetFloat(BestDistanceKey, BestDistance);
         }
+
+        // MỚI: lưu kết quả ván vừa chơi cho màn Game Over bên scene Menu đọc
+        PlayerPrefs.SetInt(LastScoreKey, Score);
+        PlayerPrefs.SetFloat(LastDistanceKey, Distance);
+        PlayerPrefs.SetInt(LastCoinsKey, Coins);
+        PlayerPrefs.SetInt(NewHighScoreKey, IsNewHighScore ? 1 : 0);
+
         PlayerPrefs.Save();
         RefreshUI(true);
     }
