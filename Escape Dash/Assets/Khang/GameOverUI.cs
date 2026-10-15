@@ -1,76 +1,51 @@
 using UnityEngine;
 using UnityEngine.SceneManagement;
-using TMPro;
 
 /// <summary>
-/// Attach to the GameOverPanel.
-/// Listens to GameEvents.OnGameOver → shows this panel automatically.
-/// Reads final stats from ScoreManage.Instance.
+/// Attach to GameOverPanel inside Khang (Hub) scene.
+/// On Start: checks if the player just died (flag from GameOverLoader).
+///   → Yes: hides MainMenu, shows Game Over panel.
+///   → No:  stays hidden, MainMenu shows normally.
 /// </summary>
 public class GameOverUI : MonoBehaviour
 {
     [Header("Panel")]
-    [Tooltip("The root Game Over panel GameObject (this panel itself)")]
     [SerializeField] private GameObject gameOverPanel;
+    [SerializeField] private GameObject mainMenuPanel; // Assign MenuPanel from Khang scene
 
-    [Header("Stat Labels")]
-    [SerializeField] private TMP_Text finalScoreText;
-    [SerializeField] private TMP_Text highScoreText;
-    [SerializeField] private TMP_Text finalDistanceText;
-    [SerializeField] private TMP_Text bestDistanceText;
-    [SerializeField] private TMP_Text finalCoinsText;
-
-    // ──────────────────────────────────────────────
-    //  Unity lifecycle
-    // ──────────────────────────────────────────────
-    private void Awake()
+    private void Start()
     {
-        // Hide the panel at the start of the scene
-        if (gameOverPanel) gameOverPanel.SetActive(false);
-    }
-
-    private void OnEnable()  => GameEvents.OnGameOver += ShowGameOver;
-    private void OnDisable() => GameEvents.OnGameOver -= ShowGameOver;
-
-    // ──────────────────────────────────────────────
-    //  Called automatically when the player dies
-    // ──────────────────────────────────────────────
-    private void ShowGameOver()
-    {
-        // Freeze the game
-        Time.timeScale = 0f;
-
-        // Populate labels from ScoreManage
-        if (ScoreManage.Instance != null)
+        // Check if we came here because of a Game Over
+        if (PlayerPrefs.GetInt(GameOverLoader.GameOverKey, 0) == 1)
         {
-            var sm = ScoreManage.Instance;
+            // Clear the flag
+            PlayerPrefs.SetInt(GameOverLoader.GameOverKey, 0);
+            PlayerPrefs.Save();
 
-            if (finalScoreText)    finalScoreText.text    = "Score: "         + sm.Score;
-            if (highScoreText)     highScoreText.text     = "Best Score: "    + sm.HighScore;
-            if (finalDistanceText) finalDistanceText.text = "Distance: "      + Mathf.FloorToInt(sm.Distance) + " m";
-            if (bestDistanceText)  bestDistanceText.text  = "Best Distance: " + Mathf.FloorToInt(sm.BestDistance) + " m";
-            if (finalCoinsText)    finalCoinsText.text    = "Coins: "         + sm.Coins;
+            // Show Game Over panel, hide Main Menu
+            if (gameOverPanel)  gameOverPanel.SetActive(true);
+            if (mainMenuPanel)  mainMenuPanel.SetActive(false);
         }
-
-        // Show the panel
-        if (gameOverPanel) gameOverPanel.SetActive(true);
+        else
+        {
+            // Normal entry → hide Game Over panel, show Main Menu
+            if (gameOverPanel)  gameOverPanel.SetActive(false);
+            if (mainMenuPanel)  mainMenuPanel.SetActive(true);
+        }
     }
 
-    // ──────────────────────────────────────────────
-    //  Button callbacks (wire these up in Inspector)
-    // ──────────────────────────────────────────────
-
-    /// <summary>Restart button → reload this gameplay scene.</summary>
+    // ── Button callbacks ──────────────────────────────────────────
     public void OnRestartButton()
     {
         Time.timeScale = 1f;
-        SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
+        // Load the gameplay scene (Linh = index 1 in Build Settings)
+        SceneManager.LoadScene(1);
     }
 
-    /// <summary>Home button → go back to the Main Menu (Build index 0).</summary>
     public void OnHomeButton()
     {
-        Time.timeScale = 1f;
-        SceneManager.LoadScene(0);
+        // Already in Khang, just switch panels
+        if (gameOverPanel) gameOverPanel.SetActive(false);
+        if (mainMenuPanel) mainMenuPanel.SetActive(true);
     }
 }
