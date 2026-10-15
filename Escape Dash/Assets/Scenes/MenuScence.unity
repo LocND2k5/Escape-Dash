@@ -292,8 +292,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 0, y: -81}
-  m_SizeDelta: {x: 160, y: 30}
+  m_AnchoredPosition: {x: 0, y: -101.9}
+  m_SizeDelta: {x: 160, y: 52.809}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &293561600
 MonoBehaviour:
@@ -717,6 +717,7 @@ GameObject:
   - component: {fileID: 836438281}
   - component: {fileID: 836438283}
   - component: {fileID: 836438282}
+  - component: {fileID: 836438284}
   m_Layer: 5
   m_Name: GameOverPanel
   m_TagString: Untagged
@@ -782,6 +783,20 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 836438280}
   m_CullTransparentMesh: 1
+--- !u!114 &836438284
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 836438280}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: be100233012e26149ad2701d26d35c68, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::GameOverUI
+  gameOverPanel: {fileID: 836438280}
+  mainMenuPanel: {fileID: 815633326}
 --- !u!1 &888185845
 GameObject:
   m_ObjectHideFlags: 0
@@ -818,8 +833,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 0, y: -81}
-  m_SizeDelta: {x: 160, y: 30}
+  m_AnchoredPosition: {x: 0, y: -93.656555}
+  m_SizeDelta: {x: 160, y: 55.3131}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &888185847
 MonoBehaviour:
@@ -1088,8 +1103,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 0, y: -15}
-  m_SizeDelta: {x: 160, y: 30}
+  m_AnchoredPosition: {x: 0, y: -29.6044}
+  m_SizeDelta: {x: 160, y: 59.2089}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &977093527
 MonoBehaviour:
