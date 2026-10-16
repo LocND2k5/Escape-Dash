@@ -675,9 +675,9 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 3941349208907970208}
-  - component: {fileID: 1436492580952223195}
   - component: {fileID: 1400579937421181723}
   - component: {fileID: 3277713766837268069}
+  - component: {fileID: 1764195993370977219}
   m_Layer: 0
   m_Name: Character
   m_TagString: Player
@@ -702,27 +702,6 @@ Transform:
   - {fileID: 6170855183889051653}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!65 &1436492580952223195
-BoxCollider:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 7128488073166736864}
-  m_Material: {fileID: 0}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_LayerOverridePriority: 0
-  m_IsTrigger: 0
-  m_ProvidesContacts: 0
-  m_Enabled: 1
-  serializedVersion: 3
-  m_Size: {x: 0.3347136, y: 1.0029027, z: 0.26436016}
-  m_Center: {x: -0.07676683, y: 0.23767781, z: -0.1049182}
 --- !u!114 &1400579937421181723
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -736,11 +715,22 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerController
   forwardSpeed: 10
+  maxSpeed: 20
+  speedIncreasePerSecond: 0.1
   laneDistance: 2
   laneChangeSpeed: 10
   jumpForce: 8
   gravity: -20
   slideDuration: 0.8
+  slideHeightRatio: 0.5
+  hitSlowFactor: 0.4
+  slowDuration: 2
+  dangerDuration: 4
+  invulnerableTime: 0.8
+  hitAnimDuration: 0.6
+  animator: {fileID: 0}
+  fadeTime: 0.1
+  jumpLoopDelay: 0.25
 --- !u!54 &3277713766837268069
 Rigidbody:
   m_ObjectHideFlags: 0
@@ -768,3 +758,26 @@ Rigidbody:
   m_Interpolate: 0
   m_Constraints: 0
   m_CollisionDetection: 0
+--- !u!136 &1764195993370977219
+CapsuleCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7128488073166736864}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 2
+  m_Radius: 0.5
+  m_Height: 1
+  m_Direction: 1
+  m_Center: {x: 0, y: 0, z: 0}

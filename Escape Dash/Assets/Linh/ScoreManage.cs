@@ -24,9 +24,15 @@ public class ScoreManage : MonoBehaviour
     public int Score => Mathf.FloorToInt(Distance * pointsPerMeter) + Coins * pointsPerCoin;
     public int HighScore { get; private set; }
     public float BestDistance { get; private set; }
+    public bool IsNewHighScore { get; private set; }   // true nếu ván vừa rồi phá kỷ lục (cho UI Game Over)
 
     private float startDistance;   // giá trị spawner.Distance lúc bắt đầu ván
     private bool running;
+
+    // Giá trị đang hiển thị: chỉ cập nhật chữ khi có thay đổi (tránh tạo chuỗi mới mỗi frame)
+    private int shownScore = -1;
+    private int shownCoins = -1;
+    private int shownMeters = -1;
 
     private const string HighScoreKey = "HighScore";
     private const string BestDistanceKey = "BestDistance";
@@ -36,6 +42,9 @@ public class ScoreManage : MonoBehaviour
         Instance = this;
         HighScore = PlayerPrefs.GetInt(HighScoreKey, 0);
         BestDistance = PlayerPrefs.GetFloat(BestDistanceKey, 0f);
+
+        if (spawner == null)
+            Debug.LogWarning("ScoreManage: chưa gán ChunkSpawner, quãng đường sẽ luôn bằng 0.", this);
     }
 
     private void OnEnable()
@@ -57,9 +66,10 @@ public class ScoreManage : MonoBehaviour
     {
         Distance = 0f;
         Coins = 0;
+        IsNewHighScore = false;
         startDistance = spawner != null ? spawner.Distance : 0f;
         running = true;
-        RefreshUI();
+        RefreshUI(true);
     }
 
     // Revive: tiếp tục tính điểm mà không reset.
@@ -88,7 +98,8 @@ public class ScoreManage : MonoBehaviour
         if (!running) return;
         running = false;
 
-        if (Score > HighScore)
+        IsNewHighScore = Score > HighScore;
+        if (IsNewHighScore)
         {
             HighScore = Score;
             PlayerPrefs.SetInt(HighScoreKey, HighScore);
@@ -99,12 +110,23 @@ public class ScoreManage : MonoBehaviour
             PlayerPrefs.SetFloat(BestDistanceKey, BestDistance);
         }
         PlayerPrefs.Save();
+        RefreshUI(true);
     }
 
-    private void RefreshUI()
+    private void RefreshUI(bool force = false)
     {
-        if (scoreText) scoreText.text = "Score: "+ Score.ToString();
-        if (coinText) coinText.text ="Coin: "+ Coins.ToString();
-        if (distanceText) distanceText.text ="Distance: "+ Mathf.FloorToInt(Distance) + " m";
+        int score = Score;
+        int meters = Mathf.FloorToInt(Distance);
+
+        if (scoreText && (force || score != shownScore))
+            scoreText.text = "Score: " + score;
+        if (coinText && (force || Coins != shownCoins))
+            coinText.text = "Coin: " + Coins;
+        if (distanceText && (force || meters != shownMeters))
+            distanceText.text = "Distance: " + meters + " m";
+
+        shownScore = score;
+        shownCoins = Coins;
+        shownMeters = meters;
     }
 }
