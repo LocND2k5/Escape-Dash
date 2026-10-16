@@ -1285,7 +1285,7 @@ MonoBehaviour:
   copiesPerChunk: 1
   startSpeed: 3
   maxSpeed: 6
-  acceleration: 0.01
+  acceleration: 0.5
   minChunksAhead: 3
   playerZ: -5
   despawnBehind: 5
