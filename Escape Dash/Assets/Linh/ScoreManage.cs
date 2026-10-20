@@ -21,6 +21,7 @@ public class ScoreManage : MonoBehaviour
 
     public float Distance { get; private set; }
     public int Coins { get; private set; }
+    public int TotalCoins { get; private set; } // Tổng coin tích luỹ qua các ván
     public int Score => Mathf.FloorToInt(Distance * pointsPerMeter) + Coins * pointsPerCoin;
     public int HighScore { get; private set; }
     public float BestDistance { get; private set; }
@@ -36,12 +37,14 @@ public class ScoreManage : MonoBehaviour
 
     private const string HighScoreKey = "HighScore";
     private const string BestDistanceKey = "BestDistance";
+    private const string TotalCoinsKey = "TotalCoins";
 
     private void Awake()
     {
         Instance = this;
         HighScore = PlayerPrefs.GetInt(HighScoreKey, 0);
         BestDistance = PlayerPrefs.GetFloat(BestDistanceKey, 0f);
+        TotalCoins = PlayerPrefs.GetInt(TotalCoinsKey, 0);
 
         if (spawner == null)
             Debug.LogWarning("ScoreManage: chưa gán ChunkSpawner, quãng đường sẽ luôn bằng 0.", this);
@@ -51,12 +54,14 @@ public class ScoreManage : MonoBehaviour
     {
         GameEvents.OnCoinCollected += AddCoin;
         GameEvents.OnGameOver += StopAndSave;
+        GameEvents.OnPlayerRevived += Resume;
     }
 
     private void OnDisable()
     {
         GameEvents.OnCoinCollected -= AddCoin;
         GameEvents.OnGameOver -= StopAndSave;
+        GameEvents.OnPlayerRevived -= Resume;
     }
 
     private void Start() => ResetRun();
@@ -77,6 +82,21 @@ public class ScoreManage : MonoBehaviour
     {
         if (spawner != null) startDistance = spawner.Distance - Distance;
         running = true;
+        RefreshUI(true);
+    }
+
+    // Trừ coin khi hồi sinh
+    public bool TrySpendCoins(int amount)
+    {
+        if (TotalCoins >= amount)
+        {
+            TotalCoins -= amount;
+            PlayerPrefs.SetInt(TotalCoinsKey, TotalCoins);
+            PlayerPrefs.Save();
+            RefreshUI(true);
+            return true;
+        }
+        return false;
     }
 
     private void Update()
@@ -90,6 +110,8 @@ public class ScoreManage : MonoBehaviour
     {
         if (!running) return;
         Coins += value;
+        TotalCoins += value; // Lưu vĩnh viễn vào ví
+        PlayerPrefs.SetInt(TotalCoinsKey, TotalCoins);
         RefreshUI();
     }
 
@@ -109,6 +131,7 @@ public class ScoreManage : MonoBehaviour
             BestDistance = Distance;
             PlayerPrefs.SetFloat(BestDistanceKey, BestDistance);
         }
+        PlayerPrefs.SetInt(TotalCoinsKey, TotalCoins);
         PlayerPrefs.Save();
         RefreshUI(true);
     }

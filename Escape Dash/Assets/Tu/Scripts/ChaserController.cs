@@ -38,8 +38,16 @@ public class ChaserController : MonoBehaviour
         Play("Gallop");
     }
 
-    private void OnEnable() { GameEvents.OnGameOver += OnCaught; }
-    private void OnDisable() { GameEvents.OnGameOver -= OnCaught; }
+    private void OnEnable() 
+    { 
+        GameEvents.OnGameOver += OnCaught; 
+        GameEvents.OnPlayerRevived += ResetChaser;
+    }
+    private void OnDisable() 
+    { 
+        GameEvents.OnGameOver -= OnCaught; 
+        GameEvents.OnPlayerRevived -= ResetChaser;
+    }
 
     public void Stumble()
     {
@@ -53,6 +61,14 @@ public class ChaserController : MonoBehaviour
         caught = true;
         targetGap = caughtGap;
         Play("Attack");
+    }
+
+    public void ResetChaser()
+    {
+        caught = false;
+        currentGap = targetGap = normalGap;
+        stumbleTimer = 0f;
+        Play("Gallop");
     }
 
     private void Update()
