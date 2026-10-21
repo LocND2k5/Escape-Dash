@@ -955,8 +955,6 @@ MonoBehaviour:
   gravity: -22
   slideDuration: 1.1
   slideHeightRatio: 0.5
-  hitSlowFactor: 0.4
-  slowDuration: 2
   dangerDuration: 4
   invulnerableTime: 0.8
   hitAnimDuration: 0.6

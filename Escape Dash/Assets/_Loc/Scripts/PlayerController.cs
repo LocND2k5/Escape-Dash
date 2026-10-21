@@ -14,17 +14,16 @@ using UnityEngine;
 // - Chạm Obstacle lần 1: giảm tốc, phát animation Hit, Bull áp sát.
 // - Chạm Obstacle lần nữa trong dangerDuration giây: Bull bắt được -> Game Over.
 //
-// MỚI: luật chơi hiện tại là CHẠM 1 LẦN LÀ THUA. Obstacle bắn thẳng GameEvents.OnGameOver,
-// nên phần vấp lần 1 (giảm tốc, animation Hit, danger timer) đã được bỏ khỏi script này.
-// State "Hit" trong Animator không còn được dùng.
+// MỚI: luật chơi hiện tại giống Subway Surfers:
+// - Obstacle loại Light (chạm nhẹ): vấp lần 1, phát animation Hit, bắt đầu dangerDuration giây.
+//   Vấp thêm lần nữa trong khoảng này -> Game Over.
+// - Obstacle loại Heavy (chạm mạnh): Game Over ngay (Obstacle bắn thẳng GameEvents.OnGameOver).
+// MỚI: phần giảm tốc khi vấp không dùng vì map do ChunkSpawner điều khiển.
 // MỚI: phần tốc độ (forwardSpeed, CurrentSpeed) vẫn giữ vì ChaserController còn đọc.
-// Tốc độ cuộn map thật sự do ChunkSpawner điều khiển (startSpeed, maxSpeed, acceleration).
 [RequireComponent(typeof(CapsuleCollider))]
 [RequireComponent(typeof(Rigidbody))]
 public class PlayerController : MonoBehaviour
 {
-    // MỚI: khôi phục nhóm Speed vì ChaserController (và script khác) còn đọc CurrentSpeed.
-    // Lưu ý: map thật sự do ChunkSpawner điều khiển, giá trị này chỉ để các script khác tham khảo.
     [Header("Speed (tốc độ cuộn của map)")]
     public float forwardSpeed = 8f;
     public float maxSpeed = 20f;
@@ -40,8 +39,11 @@ public class PlayerController : MonoBehaviour
     public float slideDuration = 0.8f;
     public float slideHeightRatio = 0.5f;
 
-    // MỚI: đã bỏ nhóm [Header("Hit Penalty")] (hitSlowFactor, slowDuration, dangerDuration,
-    // invulnerableTime, hitAnimDuration) vì không còn luật vấp lần 1.
+    // MỚI: khôi phục nhóm Hit Penalty, bỏ hitSlowFactor và slowDuration (không còn giảm tốc)
+    [Header("Hit Penalty (vấp Obstacle nhẹ)")]
+    public float dangerDuration = 4f;      // vấp lần nữa trong khoảng này -> Game Over
+    public float invulnerableTime = 0.8f;  // miễn nhiễm ngắn sau khi vấp (tránh bị tính 2 lần)
+    public float hitAnimDuration = 0.6f;   // thời gian phát animation Hit
 
     [Header("Animation")]
     [SerializeField] private Animator animator;
@@ -49,7 +51,6 @@ public class PlayerController : MonoBehaviour
     [SerializeField] private float jumpLoopDelay = 0.25f;
 
     // Tốc độ thực tế mà map đang cuộn (= 0 khi đã thua)
-    // MỚI: không còn nhân hệ số giảm tốc khi vấp (luật vấp đã bỏ)
     public float CurrentSpeed
     {
         get
@@ -58,6 +59,9 @@ public class PlayerController : MonoBehaviour
             return forwardSpeed;
         }
     }
+
+    // MỚI: true khi đang trong thời gian nguy hiểm (đã vấp 1 lần). UI/hiệu ứng có thể đọc.
+    public bool IsInDanger => dangerTimer > 0f;
 
     private int currentLane = 1;
     private float verticalVelocity;
@@ -69,7 +73,10 @@ public class PlayerController : MonoBehaviour
     private bool jumpLoopStarted;
     private float groundY;
 
-    // MỚI: đã bỏ slowTimer, dangerTimer, invulnTimer, hitAnimTimer
+    // MỚI: không còn slowTimer
+    private float dangerTimer;
+    private float invulnTimer;
+    private float hitAnimTimer;
 
     private CapsuleCollider col;
     private float originalHeight;
@@ -108,13 +115,13 @@ public class PlayerController : MonoBehaviour
     private void OnEnable()
     {
         GameEvents.OnGameOver += OnGameOver;
-        // MỚI: đã bỏ đăng ký GameEvents.OnPlayerHit (không còn ai bắn sự kiện này)
+        GameEvents.OnPlayerHit += HandleHit; // MỚI: nhận sự kiện chạm nhẹ từ Obstacle
     }
 
     private void OnDisable()
     {
         GameEvents.OnGameOver -= OnGameOver;
-        // MỚI: đã bỏ hủy đăng ký GameEvents.OnPlayerHit
+        GameEvents.OnPlayerHit -= HandleHit; // MỚI
     }
 
     private void OnGameOver()
@@ -126,20 +133,56 @@ public class PlayerController : MonoBehaviour
     public void Revive()
     {
         isDead = false;
-        // MỚI: không còn timer vấp để reset
+        dangerTimer = invulnTimer = hitAnimTimer = 0f; // MỚI: không còn slowTimer
         Play("Run");
     }
 
-    // MỚI: đã bỏ HandleHit() (vấp lần 1: giảm tốc, animation Hit, RaisePlayerStumbled)
+    // MỚI: chạm nhẹ. Lần 1 -> vấp; lần 2 trong dangerDuration -> Game Over.
+    private void HandleHit()
+    {
+        if (isDead || invulnTimer > 0f) return;
+
+        // Vấp lần nữa khi còn trong thời gian nguy hiểm -> thua
+        if (dangerTimer > 0f)
+        {
+            GameEvents.RaiseGameOver();
+            return;
+        }
+
+        dangerTimer = dangerDuration;
+        invulnTimer = invulnerableTime;
+
+        if (isGrounded && !isSliding)
+        {
+            hitAnimTimer = hitAnimDuration;
+            Play("Hit");
+        }
+
+        GameEvents.RaisePlayerStumbled(dangerDuration);
+    }
 
     private void Update()
     {
         if (isDead) return;
 
-        // MỚI: đã bỏ TickTimers() vì các timer vấp không còn tồn tại
+        TickTimers(); // MỚI: khôi phục để đếm thời gian vấp
         HandleInput();
         HandleSlideTimer();
         Move();
+    }
+
+    // MỚI: đếm ngược các timer của cơ chế vấp
+    private void TickTimers()
+    {
+        float dt = Time.deltaTime;
+        if (dangerTimer > 0f) dangerTimer -= dt;
+        if (invulnTimer > 0f) invulnTimer -= dt;
+
+        if (hitAnimTimer > 0f)
+        {
+            hitAnimTimer -= dt;
+            if (hitAnimTimer <= 0f && isGrounded && !isSliding) Play("Run");
+        }
     }
 
     private void HandleInput()
@@ -162,7 +205,6 @@ public class PlayerController : MonoBehaviour
         Vector3 pos = transform.position;
 
         // Tăng tốc dần (map cuộn nhanh dần). Player KHÔNG di chuyển theo Z.
-        // MỚI: khôi phục dòng này để CurrentSpeed tăng dần như cũ.
         forwardSpeed = Mathf.Min(forwardSpeed + speedIncreasePerSecond * dt, maxSpeed);
 
         float targetX = (currentLane - 1) * laneDistance;
@@ -197,7 +239,7 @@ public class PlayerController : MonoBehaviour
     private void Jump()
     {
         if (isSliding) EndSlide(false);
-        // MỚI: đã bỏ hitAnimTimer = 0f
+        hitAnimTimer = 0f; // MỚI: khôi phục
         verticalVelocity = jumpForce;
         isGrounded = false;
         airTime = 0f;
@@ -209,7 +251,7 @@ public class PlayerController : MonoBehaviour
     {
         isSliding = true;
         slideTimer = slideDuration;
-        // MỚI: đã bỏ hitAnimTimer = 0f
+        hitAnimTimer = 0f; // MỚI: khôi phục
 
         if (!isGrounded) verticalVelocity = -jumpForce;
 

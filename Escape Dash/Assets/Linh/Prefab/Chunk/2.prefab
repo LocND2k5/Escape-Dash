@@ -104,6 +104,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: Obstcale_Death (1)
       objectReference: {fileID: 0}
+    - target: {fileID: 840191087334633919, guid: 6da5f9c1cd9125a4da82d7211b06c79f, type: 3}
+      propertyPath: m_VersionIndex
+      value: 2431
+      objectReference: {fileID: 0}
     - target: {fileID: 7259380261556321022, guid: 6da5f9c1cd9125a4da82d7211b06c79f, type: 3}
       propertyPath: m_LocalPosition.x
       value: 2.02147
@@ -849,6 +853,10 @@ PrefabInstance:
     - target: {fileID: 723494279191914964, guid: 6da5f9c1cd9125a4da82d7211b06c79f, type: 3}
       propertyPath: m_Name
       value: Obstcale_Death
+      objectReference: {fileID: 0}
+    - target: {fileID: 840191087334633919, guid: 6da5f9c1cd9125a4da82d7211b06c79f, type: 3}
+      propertyPath: m_VersionIndex
+      value: 2431
       objectReference: {fileID: 0}
     - target: {fileID: 7259380261556321022, guid: 6da5f9c1cd9125a4da82d7211b06c79f, type: 3}
       propertyPath: m_LocalPosition.x
