@@ -1068,3 +1068,4 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 26645b910bafcb94c800296c3230a443, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Obstacle
+  instantDeath: 1
