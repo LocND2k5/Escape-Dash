@@ -22,6 +22,7 @@ public class ScoreManager : MonoBehaviour
 
     public float Distance { get; private set; }
     public int Coins { get; private set; }
+    public int TotalCoins { get; private set; }
     public int Score => Mathf.FloorToInt(Distance * pointsPerMeter) + Coins * pointsPerCoin;
     public int HighScore { get; private set; }
     public float BestDistance { get; private set; }
@@ -31,24 +32,41 @@ public class ScoreManager : MonoBehaviour
 
     private const string HighScoreKey = "HighScore";
     private const string BestDistanceKey = "BestDistance";
+    private const string TotalCoinsKey = "TotalCoins";
 
     private void Awake()
     {
         Instance = this;
         HighScore = PlayerPrefs.GetInt(HighScoreKey, 0);
         BestDistance = PlayerPrefs.GetFloat(BestDistanceKey, 0f);
+        TotalCoins = PlayerPrefs.GetInt(TotalCoinsKey, 0);
     }
 
     private void OnEnable()
     {
         GameEvents.OnCoinCollected += AddCoin;
         GameEvents.OnGameOver += StopAndSave;
+        GameEvents.OnPlayerRevived += Resume;
     }
 
     private void OnDisable()
     {
         GameEvents.OnCoinCollected -= AddCoin;
         GameEvents.OnGameOver -= StopAndSave;
+        GameEvents.OnPlayerRevived -= Resume;
+    }
+
+    public bool TrySpendCoins(int amount)
+    {
+        if (TotalCoins >= amount)
+        {
+            TotalCoins -= amount;
+            PlayerPrefs.SetInt(TotalCoinsKey, TotalCoins);
+            PlayerPrefs.Save();
+            RefreshUI();
+            return true;
+        }
+        return false;
     }
 
     private void Start() => ResetRun();
