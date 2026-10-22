@@ -134,6 +134,12 @@ public class ScoreManage : MonoBehaviour
         PlayerPrefs.SetInt(TotalCoinsKey, TotalCoins);
         PlayerPrefs.Save();
         RefreshUI(true);
+
+        // Tự động gửi điểm lên Bảng Xếp Hạng Trực Tuyến UGS
+        if (UGSLeaderboardManager.Instance != null && Score > 0)
+        {
+            _ = UGSLeaderboardManager.Instance.SubmitScoreAsync(Score);
+        }
     }
 
     private void RefreshUI(bool force = false)
