@@ -1,75 +1,125 @@
 using UnityEngine;
 using UnityEngine.SceneManagement;
-using TMPro; // Nếu bạn dùng TextMeshPro cho điểm số
+using TMPro;
 
+/// <summary>
+/// Quản lý UI Gameplay HUD và Pause Menu.
+/// Đặt trong thư mục Assets/Khang/.
+/// </summary>
 public class GameUIManager : MonoBehaviour
 {
+    public static GameUIManager Instance { get; private set; }
+
     [Header("Panels")]
-    public GameObject hudPanel;       // Màn hình trong lúc chơi (Chứa nút Pause, Điểm số...)
-    public GameObject pausePanel;     // Màn hình Tạm dừng
-    public GameObject gameOverPanel;  // Màn hình Thua cuộc
+    [Tooltip("Panel chứa HUD hiển thị khi đang chạy (Điểm, Coin, Nút Pause...)")]
+    [SerializeField] private GameObject hudPanel;
+    [Tooltip("Panel Popup khi bấm Tạm Dừng")]
+    [SerializeField] private GameObject pausePanel;
 
-    [Header("HUD Elements")]
-    public TextMeshProUGUI scoreText; // Chữ hiển thị điểm trên HUD (tùy chọn)
+    [Header("HUD Text Elements (Tự động cập nhật nếu kéo vào)")]
+    [SerializeField] private TextMeshProUGUI scoreText;
+    [SerializeField] private TextMeshProUGUI coinText;
+    [SerializeField] private TextMeshProUGUI distanceText;
 
-    private bool isGamePaused = false;
+    [Header("Settings")]
+    [Tooltip("Phím tắt để mở/đóng Pause Menu")]
+    [SerializeField] private KeyCode pauseKey = KeyCode.Escape;
 
-    void Start()
+    private bool isPaused = false;
+
+    private void Awake()
     {
-        // Khi mới bắt đầu scene Game, chỉ hiện HUD, tắt Pause và Game Over
-        hudPanel.SetActive(true);
-        pausePanel.SetActive(false);
-        gameOverPanel.SetActive(false);
-        
-        // Đảm bảo thời gian chạy bình thường
+        if (Instance == null) Instance = this;
+        else if (Instance != this) { Destroy(gameObject); return; }
+    }
+
+    private void Start()
+    {
+        // Khi bắt đầu gameplay, đảm bảo thời gian chạy bình thường và hiện HUD
         Time.timeScale = 1f;
-        isGamePaused = false;
+        isPaused = false;
+
+        if (hudPanel != null) hudPanel.SetActive(true);
+        if (pausePanel != null) pausePanel.SetActive(false);
+    }
+
+    private void Update()
+    {
+        // Hỗ trợ phím tắt Esc hoặc P để bật/tắt Pause
+        if (Input.GetKeyDown(pauseKey) || Input.GetKeyDown(KeyCode.P))
+        {
+            if (isPaused) ResumeGame();
+            else PauseGame();
+        }
+
+        // Tự động cập nhật số liệu lên HUD nếu có ScoreManage trong scene
+        UpdateHUDInfo();
+    }
+
+    private void UpdateHUDInfo()
+    {
+        if (ScoreManage.Instance != null)
+        {
+            if (scoreText != null) 
+                scoreText.text = "Score: " + ScoreManage.Instance.Score;
+            if (coinText != null) 
+                coinText.text = "Coin: " + ScoreManage.Instance.Coins;
+            if (distanceText != null) 
+                distanceText.text = "Distance: " + Mathf.FloorToInt(ScoreManage.Instance.Distance) + " m";
+        }
+        else if (ScoreManager.Instance != null)
+        {
+            if (scoreText != null) 
+                scoreText.text = "Score: " + ScoreManager.Instance.Score;
+            if (coinText != null) 
+                coinText.text = "Coin: " + ScoreManager.Instance.Coins;
+            if (distanceText != null) 
+                distanceText.text = "Distance: " + Mathf.FloorToInt(ScoreManager.Instance.Distance) + " m";
+        }
     }
 
     // ==========================================
-    // CHỨC NĂNG PAUSE MENU
+    // CÁC HÀM PAUSE MENU (Gắn vào OnClick của Button)
     // ==========================================
+
+    /// <summary>
+    /// Gọi khi bấm nút Pause trên HUD hoặc nhấn Esc
+    /// </summary>
     public void PauseGame()
     {
-        isGamePaused = true;
-        pausePanel.SetActive(true);
-        hudPanel.SetActive(false); // Ẩn HUD đi cho gọn (tuỳ bạn)
-        Time.timeScale = 0f; // Dừng thời gian trong game
+        isPaused = true;
+        Time.timeScale = 0f; // Dừng toàn bộ chuyển động trong game
+
+        if (pausePanel != null) pausePanel.SetActive(true);
     }
 
+    /// <summary>
+    /// Gọi khi bấm nút Tiếp tục (Resume) trong Pause Menu
+    /// </summary>
     public void ResumeGame()
     {
-        isGamePaused = false;
-        pausePanel.SetActive(false);
-        hudPanel.SetActive(true);
-        Time.timeScale = 1f; // Chạy lại thời gian bình thường
+        isPaused = false;
+        Time.timeScale = 1f; // Tiếp tục chạy game bình thường
+
+        if (pausePanel != null) pausePanel.SetActive(false);
     }
 
-    // ==========================================
-    // CHỨC NĂNG GAME OVER
-    // ==========================================
-    public void ShowGameOver()
-    {
-        gameOverPanel.SetActive(true);
-        hudPanel.SetActive(false);
-        Time.timeScale = 0f; // Dừng game
-    }
-
-    // ==========================================
-    // CÁC NÚT ĐIỀU HƯỚNG CHUNG
-    // ==========================================
+    /// <summary>
+    /// Gọi khi bấm nút Chơi lại (Restart)
+    /// </summary>
     public void RestartGame()
     {
-        // Trả lại thời gian bình thường trước khi load lại
-        Time.timeScale = 1f;
-        // Load lại Scene hiện tại (GameScene)
+        Time.timeScale = 1f; // Nhớ trả về 1 trước khi load lại scene
         SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
     }
 
+    /// <summary>
+    /// Gọi khi bấm nút Thoát về Menu chính (Home / Main Menu)
+    /// </summary>
     public void ReturnToMainMenu()
     {
         Time.timeScale = 1f;
-        // Giả sử MenuScene của bạn ở vị trí số 0 trong Build Settings
+        // Load MenuScence (index 0 trong Build Settings)
         SceneManager.LoadScene(0);
     }
 }
