@@ -13,7 +13,8 @@ GameObject:
   - component: {fileID: 4562579845720165164}
   - component: {fileID: 9209723004094795337}
   - component: {fileID: 6477101210666410368}
-  - component: {fileID: 7482821991201958464}
+  - component: {fileID: 8543658956044740301}
+  - component: {fileID: 5511923989063506350}
   m_Layer: 0
   m_Name: Obstcale_Death
   m_TagString: Untagged
@@ -165,43 +166,43 @@ MonoBehaviour:
   m_Positions:
   - {x: -1, y: -0.5, z: 1.5}
   - {x: 1, y: -0.5, z: 1.5}
-  - {x: -1, y: 0.5, z: 1.5}
-  - {x: 1, y: 0.5, z: 1.5}
+  - {x: -1, y: 1.2633286, z: 1.5}
+  - {x: 1, y: 1.2633286, z: 1.5}
   - {x: 1, y: -0.5, z: 1.5}
   - {x: 1, y: -0.5, z: -1.5}
-  - {x: 1, y: 0.5, z: 1.5}
-  - {x: 1, y: 0.5, z: -1.5}
+  - {x: 1, y: 1.2633286, z: 1.5}
+  - {x: 1, y: 1.2633286, z: -1.5}
   - {x: 1, y: -0.5, z: -1.5}
   - {x: -1, y: -0.5, z: -1.5}
-  - {x: 1, y: 0.5, z: -1.5}
-  - {x: -1, y: 0.5, z: -1.5}
+  - {x: 1, y: 1.2633286, z: -1.5}
+  - {x: -1, y: 1.2633286, z: -1.5}
   - {x: -1, y: -0.5, z: -1.5}
   - {x: -1, y: -0.5, z: 1.5}
-  - {x: -1, y: 0.5, z: -1.5}
-  - {x: -1, y: 0.5, z: 1.5}
-  - {x: -1, y: 0.5, z: 1.5}
-  - {x: 1, y: 0.5, z: 1.5}
-  - {x: -1, y: 0.5, z: -1.5}
-  - {x: 1, y: 0.5, z: -1.5}
+  - {x: -1, y: 1.2633286, z: -1.5}
+  - {x: -1, y: 1.2633286, z: 1.5}
+  - {x: -1, y: 1.2633286, z: 1.5}
+  - {x: 1, y: 1.2633286, z: 1.5}
+  - {x: -1, y: 1.2633286, z: -1.5}
+  - {x: 1, y: 1.2633286, z: -1.5}
   - {x: -1, y: -0.5, z: -1.5}
   - {x: 1, y: -0.5, z: -1.5}
   - {x: -1, y: -0.5, z: 1.5}
   - {x: 1, y: -0.5, z: 1.5}
   m_Textures0:
-  - {x: 2, y: 0}
-  - {x: 0, y: 0}
+  - {x: 2, y: -0.76332855}
+  - {x: 0, y: -0.76332855}
   - {x: 2, y: 1}
   - {x: 0, y: 1}
-  - {x: 3, y: 0}
-  - {x: 0, y: 0}
+  - {x: 3, y: -0.76332855}
+  - {x: 0, y: -0.76332855}
   - {x: 3, y: 1}
   - {x: 0, y: 1}
-  - {x: 2, y: 0}
-  - {x: 0, y: 0}
+  - {x: 2, y: -0.76332855}
+  - {x: 0, y: -0.76332855}
   - {x: 2, y: 1}
   - {x: 0, y: 1}
-  - {x: 3, y: 0}
-  - {x: 0, y: 0}
+  - {x: 3, y: -0.76332855}
+  - {x: 0, y: -0.76332855}
   - {x: 3, y: 1}
   - {x: 0, y: 1}
   - {x: 0, y: 1}
@@ -248,7 +249,7 @@ MonoBehaviour:
   m_PreserveMeshAssetOnDestroy: 0
   assetGuid: 
   m_Mesh: {fileID: 0}
-  m_VersionIndex: 1504
+  m_VersionIndex: 2428
   m_IsSelectable: 1
   m_SelectedFaces: 
   m_SelectedEdges: []
@@ -268,9 +269,9 @@ MonoBehaviour:
   m_Shape:
     rid: 6259464821736997127
   m_ShapeRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_UnmodifiedMeshVersion: 1504
-  m_Size: {x: 2, y: 1, z: 3}
-  m_LocalCenter: {x: 0, y: 0, z: 0}
+  m_UnmodifiedMeshVersion: 2428
+  m_Size: {x: 2, y: 1.7633286, z: 3}
+  m_LocalCenter: {x: 0, y: 0.38166425, z: 0}
   references:
     version: 2
     RefIds:
@@ -334,8 +335,8 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 723494279191914964}
   m_Mesh: {fileID: 0}
---- !u!64 &7482821991201958464
-MeshCollider:
+--- !u!65 &8543658956044740301
+BoxCollider:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
@@ -349,10 +350,22 @@ MeshCollider:
     serializedVersion: 2
     m_Bits: 0
   m_LayerOverridePriority: 0
-  m_IsTrigger: 0
+  m_IsTrigger: 1
   m_ProvidesContacts: 0
   m_Enabled: 1
-  serializedVersion: 5
-  m_Convex: 0
-  m_CookingOptions: 30
-  m_Mesh: {fileID: 0}
+  serializedVersion: 3
+  m_Size: {x: 2, y: 1.7633286, z: 3}
+  m_Center: {x: 0, y: 0.38166428, z: 0}
+--- !u!114 &5511923989063506350
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 723494279191914964}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 26645b910bafcb94c800296c3230a443, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Obstacle
+  instantDeath: 1

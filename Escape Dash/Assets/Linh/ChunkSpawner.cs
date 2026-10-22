@@ -1,11 +1,18 @@
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
 public class ChunkSpawner : MonoBehaviour
 {
-    [SerializeField] Chunk[] chunkPrefabs;
-    [SerializeField] float speed = 10f;
-    [SerializeField] int minChunksAhead = 2;     // chunks whose end is still ahead of the player
+    [SerializeField] Chunk startChunkPrefab;     // optional: empty road placed first, NOT part of the random bag
+    [SerializeField] Chunk[] chunkPrefabs;       // random chunks (shuffle bag)
+    [SerializeField] int copiesPerChunk = 1;     // instances created per chunk at load; never more during play
+    [Header("Speed")]
+    [SerializeField] float startSpeed = 10f;
+    [SerializeField] float maxSpeed = 30f;
+    [SerializeField] float acceleration = 0.1f;  // m/s gained every second
+    [Header("Spawning")]
+    [SerializeField] int minChunksAhead = 3;     // chunks whose end is still ahead of the player
     [SerializeField] float playerZ = 0f;
     [SerializeField] float despawnBehind = 20f;  // recycle once a chunk's end is this far behind the player
     [SerializeField] float firstChunkZ = -10f;   // where the first chunk starts
@@ -15,11 +22,94 @@ public class ChunkSpawner : MonoBehaviour
     readonly Dictionary<Chunk, Chunk> sourceOf = new Dictionary<Chunk, Chunk>();             // instance -> prefab
     readonly List<int> bag = new List<int>();
     int lastIndex = -1;
+    bool ready;   // true once all chunks are created
+
+    public float Speed { get; private set; }      // current speed (m/s)
+    public float Distance { get; private set; }   // meters travelled since the run started
+    public bool Running { get; private set; } = true;
+
+    void OnEnable()
+    {
+        GameEvents.OnGameOver += Stop;
+        GameEvents.OnPlayerRevived += ClearAndSpawnSafeRunway;
+    }
+
+    void OnDisable()
+    {
+        GameEvents.OnGameOver -= Stop;
+        GameEvents.OnPlayerRevived -= ClearAndSpawnSafeRunway;
+    }
+
+    public void Stop() => Running = false;
+    public void Resume() => Running = true;        // e.g. after revive
+    public void ResetSpeed() => Speed = startSpeed;
+
+    public void ClearAndSpawnSafeRunway()
+    {
+        // 1. Thu hồi toàn bộ chunk đang có trên đường
+        for (int i = active.Count - 1; i >= 0; i--)
+        {
+            Release(active[i]);
+            active.RemoveAt(i);
+        }
+
+        // 2. Đặt lại tốc độ ban đầu
+        Speed = startSpeed;
+
+        // 3. Đặt chunk an toàn (startChunkPrefab)
+        if (startChunkPrefab != null)
+        {
+            Place(startChunkPrefab);
+        }
+
+        // 4. Sinh tiếp các chunk phía trước
+        int safety = 10;
+        while (CountAhead() < minChunksAhead && safety-- > 0)
+        {
+            if (!SpawnNext()) break;
+        }
+
+        Running = true;
+    }
+
+    IEnumerator Start()
+    {
+        Speed = startSpeed;
+
+        // Create one instance per frame so the cost is spread out instead of one big freeze
+        if (startChunkPrefab != null)
+        {
+            Prewarm(startChunkPrefab, 1);
+            yield return null;
+        }
+
+        if (chunkPrefabs != null)
+        {
+            foreach (var p in chunkPrefabs)
+            {
+                for (int i = 0; i < Mathf.Max(1, copiesPerChunk); i++)
+                {
+                    Prewarm(p, 1);
+                    yield return null;
+                }
+            }
+        }
+
+        if (startChunkPrefab != null) Place(startChunkPrefab);
+        ready = true;
+    }
 
     void Update()
     {
+        if (!ready || !Running) return;
+
+        // 0. Speed up gradually, and count the distance travelled
+        Speed = Mathf.MoveTowards(Speed, maxSpeed, acceleration * Time.deltaTime);
+        float dz = Speed * Time.deltaTime;
+        Distance += dz;
+
         // 1. Move all chunks toward the player
-        Vector3 step = Vector3.back * (speed * Time.deltaTime);
+        Vector3 step = Vector3.back * dz;
         foreach (var c in active) c.transform.position += step;
 
         // 2. Recycle chunks fully behind the player
@@ -35,7 +125,7 @@ public class ChunkSpawner : MonoBehaviour
         // 3. Keep enough chunks ahead (safety limit prevents freezes)
         int safety = 10;
         while (CountAhead() < minChunksAhead && safety-- > 0)
-            SpawnNext();
+            if (!SpawnNext()) break;   // nothing free right now: try again next frame
     }
 
     int CountAhead()
@@ -45,36 +135,63 @@ public class ChunkSpawner : MonoBehaviour
         return n;
     }
 
-    void SpawnNext()
+    bool SpawnNext()
     {
         if (chunkPrefabs == null || chunkPrefabs.Length == 0)
         {
             Debug.LogError("ChunkSpawner has no chunk prefabs assigned.", this);
             enabled = false;
-            return;
+            return false;
         }
 
-        Chunk prefab = chunkPrefabs[DrawFromBag()];
+        int index = DrawFreeIndex();
+        return index >= 0 && Place(chunkPrefabs[index]);
+    }
+
+    // Puts a chunk at the end of the last active chunk (or at firstChunkZ if none)
+    bool Place(Chunk prefab)
+    {
         if (prefab.Length < 0.1f)
         {
             Debug.LogError("Chunk '" + prefab.name + "' has Length ~0. Set its Length in the Inspector.", prefab);
-            return;
+            return false;
         }
 
         Chunk chunk = Get(prefab);
+        if (chunk == null) return false;
+
         float startZ = active.Count > 0 ? active[active.Count - 1].EndZ : firstChunkZ;
         chunk.transform.position = new Vector3(0f, 0f, startZ);   // root = start edge of the road
         active.Add(chunk);
+        return true;
     }
 
-    // Shuffle bag: every chunk is used once before any repeats
-    int DrawFromBag()
+    // ---- Shuffle bag that only hands out chunks that are free right now ----
+    // A chunk that is still on the road is skipped and stays in the bag for a later draw.
+    int DrawFreeIndex()
     {
         if (bag.Count == 0) RefillBag();
-        int index = bag[bag.Count - 1];
-        bag.RemoveAt(bag.Count - 1);
-        lastIndex = index;
-        return index;
+
+        for (int i = bag.Count - 1; i >= 0; i--)
+        {
+            int idx = bag[i];
+            if (HasFree(chunkPrefabs[idx]))
+            {
+                bag.RemoveAt(i);
+                lastIndex = idx;
+                return idx;
+            }
+        }
+
+        // Every chunk left in the bag is still on the road: use any free chunk instead
+        int n = chunkPrefabs.Length;
+        int start = Random.Range(0, n);
+        for (int k = 0; k < n; k++)
+        {
+            int idx = (start + k) % n;
+            if (idx != lastIndex && HasFree(chunkPrefabs[idx])) { lastIndex = idx; return idx; }
+        }
+        return -1;
     }
 
     void RefillBag()
@@ -93,22 +210,30 @@ public class ChunkSpawner : MonoBehaviour
             (bag[top], bag[0]) = (bag[0], bag[top]);
     }
 
-    // Pooling
-    Chunk Get(Chunk prefab)
+    // ---- Pooling (fixed size: instances are created only in Prewarm) ----
+    void Prewarm(Chunk prefab, int count)
     {
         if (!pools.TryGetValue(prefab, out var q))
             pools[prefab] = q = new Queue<Chunk>();
 
-        if (q.Count > 0)
+        for (int i = 0; i < count; i++)
         {
-            Chunk c = q.Dequeue();
-            c.gameObject.SetActive(true);
-            return c;
+            Chunk c = Instantiate(prefab, transform);
+            c.gameObject.SetActive(false);
+            sourceOf[c] = prefab;
+            q.Enqueue(c);
         }
+    }
 
-        Chunk created = Instantiate(prefab, transform);
-        sourceOf[created] = prefab;
-        return created;
+    bool HasFree(Chunk prefab) => pools.TryGetValue(prefab, out var q) && q.Count > 0;
+
+    Chunk Get(Chunk prefab)
+    {
+        if (!HasFree(prefab)) return null;
+        Chunk c = pools[prefab].Dequeue();
+        c.ResetState();                 // bring back coins that were collected last time
+        c.gameObject.SetActive(true);
+        return c;
     }
 
     void Release(Chunk c)
