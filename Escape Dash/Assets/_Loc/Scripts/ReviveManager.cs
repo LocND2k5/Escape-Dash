@@ -53,6 +53,9 @@ public class ReviveManager : MonoBehaviour
 
     [Header("Game Over Panel - Buttons")]
     [SerializeField] private Button restartButton;
+    [SerializeField] private TextMeshProUGUI restartButtonText;
+    [SerializeField] private Button menuButton;
+    [SerializeField] private TextMeshProUGUI menuButtonText;
     [SerializeField] private Button leaderboardButton;
 
     // ──────────────────────────────────────────────────────────
@@ -74,7 +77,12 @@ public class ReviveManager : MonoBehaviour
         if (reviveButton  != null) reviveButton .onClick.AddListener(OnReviveClicked);
         if (skipButton    != null) skipButton   .onClick.AddListener(OnSkipClicked);
         if (restartButton != null) restartButton.onClick.AddListener(RestartGame);
+        if (menuButton    != null) menuButton   .onClick.AddListener(GoToMenu);
         if (leaderboardButton != null) leaderboardButton.onClick.AddListener(OpenLeaderboard);
+
+        // Gán chữ cho nút
+        if (restartButtonText != null) restartButtonText.text = "CHƠI LẠI [Space/R]";
+        if (menuButtonText    != null) menuButtonText   .text = "VỀ MENU CHÍNH";
 
         // Ẩn toàn bộ UI ngay khi khởi động để không che màn hình chơi
         HideAllUI();
@@ -257,6 +265,12 @@ public class ReviveManager : MonoBehaviour
     {
         Time.timeScale = 1f;
         SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
+    }
+
+    public void GoToMenu()
+    {
+        Time.timeScale = 1f;
+        SceneManager.LoadScene("MenuScence");
     }
 
     private void HideAllUI()
