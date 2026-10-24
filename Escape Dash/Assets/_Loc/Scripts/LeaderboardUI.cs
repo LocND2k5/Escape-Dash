@@ -128,15 +128,17 @@ public class LeaderboardUI : MonoBehaviour
         if (leaderboardPanel != null) leaderboardPanel.SetActive(true);
         if (overlay != null) overlay.SetActive(true);
 
-        // Đảm bảo overlay có màu đen làm tối toàn bộ nền menu phía sau (85% black)
+        // Đảm bảo overlay có màu đen làm tối toàn bộ nền menu phía sau
         // che phủ toàn bộ background menu, chữ menu chìm tối hẳn đi,
         // chỉ có bảng leaderboard nổi sáng rực rỡ ở phía trên.
+        // Lưu ý: project dùng Linear color space nên alpha hòa trộn trong không gian tuyến tính,
+        // alpha 0.85 chỉ tối ~58%. Alpha 0.985 -> nền chỉ còn ~15% độ sáng nhìn thấy.
         if (overlay != null)
         {
             var overlayImg = overlay.GetComponent<Image>();
             if (overlayImg != null)
             {
-                overlayImg.color = new Color(0f, 0f, 0f, 0.85f);
+                overlayImg.color = new Color(0f, 0f, 0f, 0.985f);
                 overlayImg.raycastTarget = true;
             }
         }

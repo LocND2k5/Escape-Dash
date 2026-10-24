@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
+using System.Text.RegularExpressions;
 
 /// <summary>
 /// Gắn lên Prefab của 1 dòng kết quả trong ScrollView Bảng Xếp Hạng.
@@ -31,7 +32,9 @@ public class LeaderboardRowUI : MonoBehaviour
         // 2. Hiển thị Tên người chơi (chữ nâu đậm, in hoa đẹp mắt)
         if (nameText != null)
         {
-            string displayName = string.IsNullOrWhiteSpace(playerName) ? $"PLAYER" : playerName.ToUpper();
+            // UGS tự gắn hậu tố "#1234" vào tên -> bỏ đi khi hiển thị
+            string cleanName = string.IsNullOrWhiteSpace(playerName) ? "" : Regex.Replace(playerName, @"#\d+$", "").Trim();
+            string displayName = string.IsNullOrEmpty(cleanName) ? $"PLAYER" : cleanName.ToUpper();
             nameText.text = displayName;
             nameText.color = isCurrentPlayer ? myNameColor : nameColor;
         }
