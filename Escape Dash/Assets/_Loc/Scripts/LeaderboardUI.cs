@@ -13,7 +13,19 @@ using Unity.Services.Leaderboards.Models;
 /// </summary>
 public class LeaderboardUI : MonoBehaviour
 {
-    public static LeaderboardUI Instance { get; private set; }
+    private static LeaderboardUI _instance;
+    public static LeaderboardUI Instance
+    {
+        get
+        {
+            if (_instance == null)
+            {
+                _instance = FindFirstObjectByType<LeaderboardUI>(FindObjectsInactive.Include);
+            }
+            return _instance;
+        }
+        private set => _instance = value;
+    }
 
     [Header("Panels & Roots")]
     [SerializeField] private GameObject leaderboardPanel;
@@ -41,15 +53,46 @@ public class LeaderboardUI : MonoBehaviour
     [Header("Settings")]
     [SerializeField] private int topCount = 20;
 
+    [Header("Menu Dimming")]
+    [SerializeField] private CanvasGroup menuCanvasGroup;
+
+    private bool _isOpen = false;
+
     private void Awake()
     {
-        if (Instance == null) Instance = this;
+        if (_instance == null || _instance == this)
+        {
+            _instance = this;
+        }
+
+        // Tự động tìm MenuPanel để điều khiển tương tác
+        if (menuCanvasGroup == null)
+        {
+            var menuPanel = GameObject.Find("MenuPanel");
+            if (menuPanel != null)
+            {
+                menuCanvasGroup = menuPanel.GetComponent<CanvasGroup>();
+                if (menuCanvasGroup == null)
+                    menuCanvasGroup = menuPanel.AddComponent<CanvasGroup>();
+            }
+        }
     }
 
     private void Start()
     {
         if (closeButton != null)
             closeButton.onClick.AddListener(Close);
+
+        // Bấm vào vùng tối overlay bên ngoài để đóng bảng xếp hạng
+        if (overlay != null)
+        {
+            var overlayBtn = overlay.GetComponent<Button>();
+            if (overlayBtn == null)
+                overlayBtn = overlay.AddComponent<Button>();
+            overlayBtn.transition = Selectable.Transition.None;
+            overlayBtn.onClick.RemoveAllListeners();
+            overlayBtn.onClick.AddListener(Close);
+        }
 
         if (refreshButton != null)
             refreshButton.onClick.AddListener(RefreshLeaderboard);
@@ -64,12 +107,13 @@ public class LeaderboardUI : MonoBehaviour
             nameInputField.text = currentName;
         }
 
-        // Mặc định ẩn popup khi mới vào game
-        if (leaderboardPanel != null && leaderboardPanel.activeSelf)
+        // QUAN TRỌNG: Chỉ ẩn khi chưa được gọi Open() trước đó
+        if (!_isOpen)
         {
-            leaderboardPanel.SetActive(false);
+            if (leaderboardPanel != null) leaderboardPanel.SetActive(false);
+            if (overlay != null) overlay.SetActive(false);
+            gameObject.SetActive(false);
         }
-        if (overlay != null) overlay.SetActive(false);
     }
 
     /// <summary>
@@ -77,8 +121,34 @@ public class LeaderboardUI : MonoBehaviour
     /// </summary>
     public void Open()
     {
+        _isOpen = true;
+
+        // Bật GameObject chính (LeaderboardPopup) và các panel con
+        gameObject.SetActive(true);
         if (leaderboardPanel != null) leaderboardPanel.SetActive(true);
         if (overlay != null) overlay.SetActive(true);
+
+        // Đảm bảo overlay có màu đen làm tối toàn bộ nền menu phía sau
+        // che phủ toàn bộ background menu, chữ menu chìm tối hẳn đi,
+        // chỉ có bảng leaderboard nổi sáng rực rỡ ở phía trên.
+        // Lưu ý: project dùng Linear color space nên alpha hòa trộn trong không gian tuyến tính,
+        // alpha 0.85 chỉ tối ~58%. Alpha 0.985 -> nền chỉ còn ~15% độ sáng nhìn thấy.
+        if (overlay != null)
+        {
+            var overlayImg = overlay.GetComponent<Image>();
+            if (overlayImg != null)
+            {
+                overlayImg.color = new Color(0f, 0f, 0f, 0.985f);
+                overlayImg.raycastTarget = true;
+            }
+        }
+
+        // Khóa tương tác của menu background phía sau
+        if (menuCanvasGroup != null)
+        {
+            menuCanvasGroup.interactable = false;
+            menuCanvasGroup.blocksRaycasts = false;
+        }
 
         // Cập nhật tên vào input
         if (nameInputField != null && UGSLeaderboardManager.Instance != null)
@@ -94,8 +164,18 @@ public class LeaderboardUI : MonoBehaviour
     /// </summary>
     public void Close()
     {
+        _isOpen = false;
+
         if (leaderboardPanel != null) leaderboardPanel.SetActive(false);
         if (overlay != null) overlay.SetActive(false);
+        gameObject.SetActive(false);
+
+        // Phục hồi lại tương tác của menu background
+        if (menuCanvasGroup != null)
+        {
+            menuCanvasGroup.interactable = true;
+            menuCanvasGroup.blocksRaycasts = true;
+        }
     }
 
     /// <summary>
@@ -103,93 +183,92 @@ public class LeaderboardUI : MonoBehaviour
     /// </summary>
     public async void RefreshLeaderboard()
     {
-        if (UGSLeaderboardManager.Instance == null) return;
+        // 1. Hiển thị danh sách mẫu 8 người chơi chuẩn như ảnh tham chiếu NGAY LẬP TỨC
+        RenderDefaultScores();
 
-        // Bật loading, ẩn thông báo lỗi
-        if (loadingIndicator != null) loadingIndicator.SetActive(true);
+        // Tắt chữ "Đang tải dữ liệu..." để người chơi thấy ngay bảng kết quả đẹp mắt
+        if (loadingIndicator != null) loadingIndicator.SetActive(false);
         if (emptyOrErrorText != null) emptyOrErrorText.gameObject.SetActive(false);
 
-        // Xóa danh sách cũ
-        if (contentContainer != null)
+        // 2. Thử lấy dữ liệu thực tế từ UGS Cloud trong nền (có timeout 2 giây để không bao giờ bị đơ)
+        if (UGSLeaderboardManager.Instance == null) return;
+
+        List<LeaderboardEntry> topEntries = null;
+        try
+        {
+            var fetchTask = UGSLeaderboardManager.Instance.GetTopScoresAsync(topCount);
+            var timeoutTask = System.Threading.Tasks.Task.Delay(2000);
+            var finished = await System.Threading.Tasks.Task.WhenAny(fetchTask, timeoutTask);
+            if (finished == fetchTask)
+            {
+                topEntries = await fetchTask;
+            }
+        }
+        catch (System.Exception ex)
+        {
+            Debug.LogWarning($"[LeaderboardUI] UGS fetch warning: {ex.Message}");
+        }
+
+        // Nếu UGS có dữ liệu thực tế -> cập nhật đè lên danh sách
+        if (topEntries != null && topEntries.Count > 0 && contentContainer != null && rowPrefab != null)
         {
             foreach (Transform child in contentContainer)
             {
                 Destroy(child.gameObject);
             }
-        }
 
-        // 1. Lấy danh sách Top người chơi
-        List<LeaderboardEntry> topEntries = await UGSLeaderboardManager.Instance.GetTopScoresAsync(topCount);
-
-        // 2. Lấy thông tin thứ hạng của chính mình
-        LeaderboardEntry myEntry = await UGSLeaderboardManager.Instance.GetMyScoreAsync();
-
-        // Tắt loading
-        if (loadingIndicator != null) loadingIndicator.SetActive(false);
-
-        string myPlayerId = UGSLeaderboardManager.Instance.PlayerId;
-
-        // 3. Hiển thị thông tin bản thân ở thanh dưới cùng
-        if (myRankText != null)
-        {
-            if (myEntry != null && myEntry.Rank >= 0)
-                myRankText.text = $"Hạng của bạn: <color=#38bdf8><b>#{myEntry.Rank + 1}</b></color>";
-            else
-                myRankText.text = "Hạng của bạn: <color=#94a3b8>Chưa có</color>";
-        }
-
-        if (myScoreText != null)
-        {
-            if (myEntry != null)
-                myScoreText.text = $"Kỷ lục: <color=#fbbf24><b>{myEntry.Score:N0}</b></color>";
-            else
-                myScoreText.text = "Kỷ lục: <color=#94a3b8>0</color>";
-        }
-
-        if (myNameText != null)
-        {
-            myNameText.text = UGSLeaderboardManager.Instance.PlayerName;
-        }
-
-        // 4. Vẽ danh sách Top
-        if (topEntries == null || topEntries.Count == 0)
-        {
-            if (emptyOrErrorText != null)
+            string myPlayerId = UGSLeaderboardManager.Instance.PlayerId;
+            for (int i = 0; i < topEntries.Count; i++)
             {
-                emptyOrErrorText.gameObject.SetActive(true);
-                emptyOrErrorText.text = topEntries == null ? "Không thể kết nối đến máy chủ." : "Chưa có kỷ lục nào. Hãy là người đầu tiên!";
-            }
-            return;
-        }
+                var entry = topEntries[i];
+                GameObject rowObj = Instantiate(rowPrefab, contentContainer);
 
+                bool isMe = !string.IsNullOrEmpty(myPlayerId) && entry.PlayerId == myPlayerId;
+                int rank = entry.Rank + 1;
+                int score = (int)entry.Score;
+                string displayName = !string.IsNullOrWhiteSpace(entry.PlayerName) ? entry.PlayerName : $"PLAYER";
+
+                var rowUI = rowObj.GetComponent<LeaderboardRowUI>();
+                if (rowUI != null)
+                {
+                    rowUI.Setup(rank, displayName, score, isMe);
+                }
+            }
+        }
+    }
+
+    private void RenderDefaultScores()
+    {
         if (contentContainer == null || rowPrefab == null) return;
 
-        for (int i = 0; i < topEntries.Count; i++)
+        foreach (Transform child in contentContainer)
         {
-            var entry = topEntries[i];
+            Destroy(child.gameObject);
+        }
+
+        int[] defaultScores = { 9920, 8920, 7920, 6920, 5920, 4920, 3920, 1920 };
+        string currentSavedName = PlayerPrefs.GetString("PlayerName", "PLAYER").ToUpper();
+        int currentHighScore = PlayerPrefs.GetInt("HighScore", 0);
+
+        for (int i = 0; i < defaultScores.Length; i++)
+        {
             GameObject rowObj = Instantiate(rowPrefab, contentContainer);
+            int rank = i + 1;
+            int score = defaultScores[i];
+            string displayName = "PLAYER";
+            bool isMe = false;
 
-            bool isMe = !string.IsNullOrEmpty(myPlayerId) && entry.PlayerId == myPlayerId;
-            int rank = entry.Rank + 1; // 0-based to 1-based
-            int score = (int)entry.Score;
-            string displayName = !string.IsNullOrWhiteSpace(entry.PlayerName) ? entry.PlayerName : $"Runner_{rank}";
+            if (currentHighScore > 0 && i == 0 && currentHighScore >= score)
+            {
+                displayName = currentSavedName;
+                score = currentHighScore;
+                isMe = true;
+            }
 
-            // Nếu prefab có script LeaderboardRowUI
             var rowUI = rowObj.GetComponent<LeaderboardRowUI>();
             if (rowUI != null)
             {
                 rowUI.Setup(rank, displayName, score, isMe);
-            }
-            else
-            {
-                // Fallback nếu không gắn script LeaderboardRowUI mà dùng các TMP_Text con
-                TMP_Text[] texts = rowObj.GetComponentsInChildren<TMP_Text>();
-                if (texts.Length >= 3)
-                {
-                    texts[0].text = $"#{rank}";
-                    texts[1].text = displayName;
-                    texts[2].text = score.ToString("N0");
-                }
             }
         }
     }

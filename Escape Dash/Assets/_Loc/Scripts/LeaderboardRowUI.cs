@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
+using System.Text.RegularExpressions;
 
 /// <summary>
 /// Gắn lên Prefab của 1 dòng kết quả trong ScrollView Bảng Xếp Hạng.
@@ -14,35 +15,35 @@ public class LeaderboardRowUI : MonoBehaviour
     [SerializeField] private Image backgroundImage;
 
     [Header("Colors")]
-    [SerializeField] private Color normalColor = new Color(0.15f, 0.15f, 0.2f, 0.6f);
-    [SerializeField] private Color highlightColor = new Color(0.2f, 0.45f, 0.85f, 0.85f);
-    [SerializeField] private Color top1Color = new Color(0.95f, 0.75f, 0.15f, 1f); // Vàng cho Top 1
-    [SerializeField] private Color top2Color = new Color(0.8f, 0.8f, 0.85f, 1f);   // Bạc cho Top 2
-    [SerializeField] private Color top3Color = new Color(0.8f, 0.5f, 0.2f, 1f);    // Đồng cho Top 3
+    [SerializeField] private Color normalColor = new Color(1f, 1f, 1f, 0f); // Trong suốt mặc định
+    [SerializeField] private Color highlightColor = new Color(1f, 0.92f, 0.65f, 0.35f); // Viền vàng nhẹ cho chính mình
+    [SerializeField] private Color nameColor = new Color(0.48f, 0.20f, 0.02f, 1f); // Màu nâu đậm đặc trưng như trong ảnh
+    [SerializeField] private Color myNameColor = new Color(0.75f, 0.25f, 0.0f, 1f);
 
     public void Setup(int rank, string playerName, int score, bool isCurrentPlayer)
     {
-        // 1. Hiển thị Rank
+        // 1. Hiển thị Rank (chỉ số 1, 2, 3... chữ trắng trên nền huy hiệu đỏ)
         if (rankText != null)
         {
-            rankText.text = $"#{rank}";
-            if (rank == 1) rankText.color = top1Color;
-            else if (rank == 2) rankText.color = top2Color;
-            else if (rank == 3) rankText.color = top3Color;
-            else rankText.color = Color.white;
+            rankText.text = rank.ToString();
+            rankText.color = Color.white;
         }
 
-        // 2. Hiển thị Tên người chơi
+        // 2. Hiển thị Tên người chơi (chữ nâu đậm, in hoa đẹp mắt)
         if (nameText != null)
         {
-            nameText.text = string.IsNullOrWhiteSpace(playerName) ? $"Runner_{rank}" : playerName;
-            nameText.color = isCurrentPlayer ? Color.cyan : Color.white;
+            // UGS tự gắn hậu tố "#1234" vào tên -> bỏ đi khi hiển thị
+            string cleanName = string.IsNullOrWhiteSpace(playerName) ? "" : Regex.Replace(playerName, @"#\d+$", "").Trim();
+            string displayName = string.IsNullOrEmpty(cleanName) ? $"PLAYER" : cleanName.ToUpper();
+            nameText.text = displayName;
+            nameText.color = isCurrentPlayer ? myNameColor : nameColor;
         }
 
-        // 3. Hiển thị Điểm
+        // 3. Hiển thị Điểm (chữ trắng trên nền huy hiệu nâu)
         if (scoreText != null)
         {
-            scoreText.text = score.ToString("N0"); // Format có dấu phẩy: 12,345
+            scoreText.text = score.ToString("N0");
+            scoreText.color = Color.white;
         }
 
         // 4. Đổi màu nền nếu là chính người chơi này
