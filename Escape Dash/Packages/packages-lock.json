@@ -186,11 +186,11 @@
       "url": "https://packages.unity.com"
     },
     "com.unity.services.leaderboards": {
-      "version": "2.3.4",
+      "version": "2.2.1",
       "depth": 0,
       "source": "registry",
       "dependencies": {
-        "com.unity.services.core": "1.15.1",
+        "com.unity.services.core": "1.13.0",
         "com.unity.services.authentication": "3.3.3"
       },
       "url": "https://packages.unity.com"

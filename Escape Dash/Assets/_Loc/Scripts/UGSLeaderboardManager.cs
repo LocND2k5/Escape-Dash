@@ -17,7 +17,24 @@ using Unity.Services.Leaderboards.Models;
 /// </summary>
 public class UGSLeaderboardManager : MonoBehaviour
 {
-    public static UGSLeaderboardManager Instance { get; private set; }
+    private static UGSLeaderboardManager _instance;
+    public static UGSLeaderboardManager Instance
+    {
+        get
+        {
+            if (_instance == null)
+            {
+                _instance = FindFirstObjectByType<UGSLeaderboardManager>();
+                if (_instance == null)
+                {
+                    GameObject go = new GameObject("UGSLeaderboardManager");
+                    _instance = go.AddComponent<UGSLeaderboardManager>();
+                }
+            }
+            return _instance;
+        }
+        private set => _instance = value;
+    }
 
     [Header("Leaderboard Settings")]
     [Tooltip("ID của Leaderboard trên Unity Cloud Dashboard. Phải khớp 100% từng chữ.")]
@@ -37,28 +54,47 @@ public class UGSLeaderboardManager : MonoBehaviour
 
     private async void Awake()
     {
-        if (Instance == null)
+        if (_instance == null)
         {
-            Instance = this;
+            _instance = this;
             DontDestroyOnLoad(gameObject);
             await InitializeServicesAsync();
         }
-        else
+        else if (_instance != this)
         {
             Destroy(gameObject);
         }
     }
 
+    private static Task<bool> _initializationTask = null;
+
     /// <summary>
     /// Khởi tạo Unity Services và đăng nhập ẩn danh cho thiết bị
     /// </summary>
-    public async Task InitializeServicesAsync()
+    public async Task<bool> InitializeServicesAsync()
     {
-        if (IsReady) return;
+        if (IsReady) return true;
 
+        if (_initializationTask != null && !_initializationTask.IsCompleted)
+        {
+            return await _initializationTask;
+        }
+
+        _initializationTask = DoInitializeServicesAsync();
+        return await _initializationTask;
+    }
+
+    private async Task<bool> DoInitializeServicesAsync()
+    {
         try
         {
-            // 1. Khởi tạo UGS Core
+            // 1. Chờ nếu dịch vụ đang trong tiến trình khởi tạo
+            while (UnityServices.State == ServicesInitializationState.Initializing)
+            {
+                await Task.Yield();
+            }
+
+            // Khởi tạo UGS Core nếu chưa
             if (UnityServices.State == ServicesInitializationState.Uninitialized)
             {
                 await UnityServices.InitializeAsync();
@@ -72,35 +108,33 @@ public class UGSLeaderboardManager : MonoBehaviour
 
             currentPlayerId = AuthenticationService.Instance.PlayerId;
 
-            // 3. Đọc tên người chơi đã lưu hoặc tạo tên mặc định
+            // 3. Đọc tên người chơi đã lưu (nếu có)
             string savedName = PlayerPrefs.GetString("PlayerName", "");
-            if (string.IsNullOrEmpty(savedName))
-            {
-                // Tên mặc định: Runner + 4 số ngẫu nhiên
-                savedName = "Runner_" + UnityEngine.Random.Range(1000, 9999);
-                PlayerPrefs.SetString("PlayerName", savedName);
-                PlayerPrefs.Save();
-            }
-
             currentPlayerName = savedName;
 
-            // Cập nhật tên lên Unity Authentication nếu cần
-            try
+            if (!string.IsNullOrEmpty(savedName))
             {
-                await AuthenticationService.Instance.UpdatePlayerNameAsync(savedName);
-            }
-            catch
-            {
-                // Bỏ qua nếu offline hoặc tên chưa cập nhật được
+                // Cập nhật tên lên Unity Authentication nếu đã lưu từ trước
+                try
+                {
+                    await AuthenticationService.Instance.UpdatePlayerNameAsync(savedName);
+                }
+                catch
+                {
+                    // Bỏ qua nếu offline hoặc tên chưa cập nhật được
+                }
             }
 
             isInitialized = true;
-            Debug.Log($"<color=#4ade80>[UGS Leaderboard]</color> Khởi tạo thành công! PlayerID: {currentPlayerId}, Name: {currentPlayerName}");
+            Debug.Log($"<color=#4ade80>[UGS Leaderboard]</color> Khởi tạo thành công! PlayerID: {currentPlayerId}, Name: {(string.IsNullOrEmpty(currentPlayerName) ? "(Chưa đặt tên)" : currentPlayerName)}");
             OnInitialized?.Invoke();
+            return true;
         }
         catch (Exception ex)
         {
+            isInitialized = false;
             Debug.LogError($"<color=#f87171>[UGS Leaderboard] Lỗi khởi tạo:</color> {ex.Message}");
+            return false;
         }
     }
 
@@ -114,8 +148,8 @@ public class UGSLeaderboardManager : MonoBehaviour
         newName = newName.Trim();
         if (!IsReady)
         {
-            await InitializeServicesAsync();
-            if (!IsReady) return false;
+            bool ready = await InitializeServicesAsync();
+            if (!ready || !IsReady) return false;
         }
 
         try
@@ -145,8 +179,8 @@ public class UGSLeaderboardManager : MonoBehaviour
 
         if (!IsReady)
         {
-            await InitializeServicesAsync();
-            if (!IsReady)
+            bool ready = await InitializeServicesAsync();
+            if (!ready || !IsReady)
             {
                 Debug.LogWarning("[UGS Leaderboard] Chưa kết nối được dịch vụ để gửi điểm.");
                 return null;
@@ -173,8 +207,8 @@ public class UGSLeaderboardManager : MonoBehaviour
     {
         if (!IsReady)
         {
-            await InitializeServicesAsync();
-            if (!IsReady) return null;
+            bool ready = await InitializeServicesAsync();
+            if (!ready || !IsReady) return null;
         }
 
         try
@@ -197,8 +231,8 @@ public class UGSLeaderboardManager : MonoBehaviour
     {
         if (!IsReady)
         {
-            await InitializeServicesAsync();
-            if (!IsReady) return null;
+            bool ready = await InitializeServicesAsync();
+            if (!ready || !IsReady) return null;
         }
 
         try
