@@ -35,9 +35,16 @@ public class ScoreManage : MonoBehaviour
     private int shownCoins = -1;
     private int shownMeters = -1;
 
-    private const string HighScoreKey = "HighScore";
-    private const string BestDistanceKey = "BestDistance";
+    // public để scene Menu (GameOverUI, MainMenu) đọc được cùng key
+    public const string HighScoreKey = "HighScore";
+    public const string BestDistanceKey = "BestDistance";
     private const string TotalCoinsKey = "TotalCoins";
+
+    // Kết quả của ván vừa chơi, để scene Menu hiển thị sau khi chết
+    public const string LastScoreKey = "LastScore";
+    public const string LastDistanceKey = "LastDistance";
+    public const string LastCoinsKey = "LastCoins";
+    public const string NewHighScoreKey = "NewHighScore"; // 1 = ván vừa rồi phá kỷ lục
 
     private void Awake()
     {
@@ -132,6 +139,13 @@ public class ScoreManage : MonoBehaviour
             PlayerPrefs.SetFloat(BestDistanceKey, BestDistance);
         }
         PlayerPrefs.SetInt(TotalCoinsKey, TotalCoins);
+
+        // Lưu kết quả ván vừa chơi cho màn Game Over bên scene Menu đọc
+        PlayerPrefs.SetInt(LastScoreKey, Score);
+        PlayerPrefs.SetFloat(LastDistanceKey, Distance);
+        PlayerPrefs.SetInt(LastCoinsKey, Coins);
+        PlayerPrefs.SetInt(NewHighScoreKey, IsNewHighScore ? 1 : 0);
+
         PlayerPrefs.Save();
         RefreshUI(true);
 
