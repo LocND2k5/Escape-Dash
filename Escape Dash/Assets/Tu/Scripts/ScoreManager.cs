@@ -15,6 +15,8 @@ public class ScoreManager : MonoBehaviour
     [SerializeField] private TMP_Text scoreText;
     [SerializeField] private TMP_Text coinText;
     [SerializeField] private TMP_Text distanceText;
+    // MỚI: (tùy chọn) hiện High Score ngay trên HUD lúc đang chơi
+    [SerializeField] private TMP_Text highScoreText;
 
     [Header("Settings")]
     [SerializeField] private float pointsPerMeter = 1f;
@@ -30,9 +32,16 @@ public class ScoreManager : MonoBehaviour
     private float startDistance;
     private bool running;
 
-    private const string HighScoreKey = "HighScore";
-    private const string BestDistanceKey = "BestDistance";
+    // MỚI: đổi từ private -> public để scene Khang (GameOverUI, MainMenu) đọc được cùng key
+    public const string HighScoreKey = "HighScore";
+    public const string BestDistanceKey = "BestDistance";
     private const string TotalCoinsKey = "TotalCoins";
+
+    // MỚI: kết quả của ván vừa chơi, để scene Khang hiển thị sau khi chết
+    public const string LastScoreKey = "LastScore";
+    public const string LastDistanceKey = "LastDistance";
+    public const string LastCoinsKey = "LastCoins";
+    public const string NewHighScoreKey = "NewHighScore"; // 1 = ván vừa rồi phá kỷ lục
 
     private void Awake()
     {
@@ -114,6 +123,9 @@ public class ScoreManager : MonoBehaviour
         if (!running) return;
         running = false;
 
+        // MỚI: nhớ xem ván này có phá kỷ lục không (phải xét TRƯỚC khi ghi đè HighScore)
+        bool isNewHighScore = Score > HighScore;
+
         if (Score > HighScore)
         {
             HighScore = Score;
@@ -124,6 +136,13 @@ public class ScoreManager : MonoBehaviour
             BestDistance = Distance;
             PlayerPrefs.SetFloat(BestDistanceKey, BestDistance);
         }
+
+        // MỚI: lưu kết quả ván vừa chơi cho màn Game Over bên scene Khang đọc
+        PlayerPrefs.SetInt(LastScoreKey, Score);
+        PlayerPrefs.SetFloat(LastDistanceKey, Distance);
+        PlayerPrefs.SetInt(LastCoinsKey, Coins);
+        PlayerPrefs.SetInt(NewHighScoreKey, isNewHighScore ? 1 : 0);
+
         PlayerPrefs.Save();
 
         // Tự động gửi điểm lên Bảng Xếp Hạng Trực Tuyến UGS
@@ -138,5 +157,8 @@ public class ScoreManager : MonoBehaviour
         if (scoreText) scoreText.text = Score.ToString();
         if (coinText) coinText.text = Coins.ToString();
         if (distanceText) distanceText.text = Mathf.FloorToInt(Distance) + " m";
+
+        // MỚI: High Score trên HUD (hiện kỷ lục cũ; nếu ván này vượt thì hiện điểm hiện tại)
+        if (highScoreText) highScoreText.text = "BEST: " + Mathf.Max(HighScore, Score);
     }
 }

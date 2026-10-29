@@ -262,7 +262,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 26645b910bafcb94c800296c3230a443, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Obstacle
-  instantDeath: 1
+  hitType: 1
 --- !u!4 &2975464456703385762 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: d24987f59f08adb40ac2f694ac208f98, type: 3}

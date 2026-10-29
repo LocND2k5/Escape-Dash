@@ -30,7 +30,7 @@ public class PlayerController : MonoBehaviour
     public float jumpForce = 8f;
     public float gravity = -22f;
     public float slideDuration = 0.8f;
-    public float slideHeightRatio = 0.5f;
+    public float slideHeightRatio = 0.4f;
 
     [Header("Hit Penalty (vấp Obstacle)")]
     public float hitSlowFactor = 0.4f;     // tốc độ còn bao nhiêu % ngay khi vấp (0.4 = 40%)
