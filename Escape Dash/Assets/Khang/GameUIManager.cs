@@ -1,10 +1,14 @@
 using UnityEngine;
+using UnityEngine.UI;
 using UnityEngine.SceneManagement;
 using TMPro;
 
 /// <summary>
-/// Quản lý UI Gameplay HUD và Pause Menu.
-/// Đặt trong thư mục Assets/Khang/.
+/// Quản lý toàn bộ UI trong Gameplay Scene (Linh / Loc):
+/// - HUD hiển thị Điểm (Score), Xu (Coin), Quãng đường (Distance)
+/// - Pause Menu (Tạm dừng, Tiếp tục, Chơi lại, Về Menu)
+/// - Tự động bắt sự kiện Game Over & ghi đè nút xanh ReviveManager để chuyển về Game Over ở MenuScence.
+/// Nằm trong thư mục Assets/Khang/.
 /// </summary>
 public class GameUIManager : MonoBehaviour
 {
@@ -13,6 +17,7 @@ public class GameUIManager : MonoBehaviour
     [Header("Panels")]
     [Tooltip("Panel chứa HUD hiển thị khi đang chạy (Điểm, Coin, Nút Pause...)")]
     [SerializeField] private GameObject hudPanel;
+
     [Tooltip("Panel Popup khi bấm Tạm Dừng")]
     [SerializeField] private GameObject pausePanel;
 
@@ -20,6 +25,10 @@ public class GameUIManager : MonoBehaviour
     [SerializeField] private TextMeshProUGUI scoreText;
     [SerializeField] private TextMeshProUGUI coinText;
     [SerializeField] private TextMeshProUGUI distanceText;
+
+    [Header("Game Over & Revive Bridge")]
+    [Tooltip("Kéo nút màu xanh (Restart Button) trong GameOverPanel của ReviveManager vào đây")]
+    [SerializeField] private Button reviveRestartButton;
 
     [Header("Settings")]
     [Tooltip("Phím tắt để mở/đóng Pause Menu")]
@@ -33,6 +42,16 @@ public class GameUIManager : MonoBehaviour
         else if (Instance != this) { Destroy(gameObject); return; }
     }
 
+    private void OnEnable()
+    {
+        GameEvents.OnGameOver += HandleGameOverEvent;
+    }
+
+    private void OnDisable()
+    {
+        GameEvents.OnGameOver -= HandleGameOverEvent;
+    }
+
     private void Start()
     {
         // Khi bắt đầu gameplay, đảm bảo thời gian chạy bình thường và hiện HUD
@@ -41,6 +60,13 @@ public class GameUIManager : MonoBehaviour
 
         if (hudPanel != null) hudPanel.SetActive(true);
         if (pausePanel != null) pausePanel.SetActive(false);
+
+        // Thiết lập đè hành vi cho nút xanh của ReviveManager (nếu có gán)
+        if (reviveRestartButton != null)
+        {
+            reviveRestartButton.onClick.RemoveAllListeners();
+            reviveRestartButton.onClick.AddListener(TriggerGameOverScreen);
+        }
     }
 
     private void Update()
@@ -120,6 +146,27 @@ public class GameUIManager : MonoBehaviour
     {
         Time.timeScale = 1f;
         // Load MenuScence (index 0 trong Build Settings)
+        SceneManager.LoadScene(0);
+    }
+
+    // ==========================================
+    // XỬ LÝ CHUYỂN TIẾP GAME OVER VỀ MENUSCENCE
+    // ==========================================
+
+    private void HandleGameOverEvent()
+    {
+        TriggerGameOverScreen();
+    }
+
+    /// <summary>
+    /// Lưu cờ báo Game Over và load về MenuScence để hiện Game Over Panel
+    /// </summary>
+    public void TriggerGameOverScreen()
+    {
+        PlayerPrefs.SetInt(MenuSceneManager.GameOverKey, 1);
+        PlayerPrefs.Save();
+
+        Time.timeScale = 1f;
         SceneManager.LoadScene(0);
     }
 }
