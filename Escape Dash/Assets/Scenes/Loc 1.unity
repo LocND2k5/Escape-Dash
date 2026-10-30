@@ -837,7 +837,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: Button
+  m_text: "T\u1EA1m d\u1EEBng"
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
   m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
@@ -3414,6 +3414,10 @@ MonoBehaviour:
   goBestText: {fileID: 777013102}
   goCoinsText: {fileID: 777014102}
   restartButton: {fileID: 777015102}
+  restartButtonText: {fileID: 0}
+  menuButton: {fileID: 0}
+  menuButtonText: {fileID: 0}
+  leaderboardButton: {fileID: 0}
 --- !u!1 &888888011
 GameObject:
   m_ObjectHideFlags: 0
@@ -4481,6 +4485,7 @@ MonoBehaviour:
   scoreText: {fileID: 0}
   coinText: {fileID: 0}
   distanceText: {fileID: 0}
+  reviveRestartButton: {fileID: 0}
   pauseKey: 282
 --- !u!4 &1773472854
 Transform:
