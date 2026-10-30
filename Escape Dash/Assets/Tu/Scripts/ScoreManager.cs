@@ -125,6 +125,12 @@ public class ScoreManager : MonoBehaviour
             PlayerPrefs.SetFloat(BestDistanceKey, BestDistance);
         }
         PlayerPrefs.Save();
+
+        // Tự động gửi điểm lên Bảng Xếp Hạng Trực Tuyến UGS
+        if (UGSLeaderboardManager.Instance != null && Score > 0)
+        {
+            _ = UGSLeaderboardManager.Instance.SubmitScoreAsync(Score);
+        }
     }
 
     private void RefreshUI()

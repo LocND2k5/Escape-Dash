@@ -53,6 +53,10 @@ public class ReviveManager : MonoBehaviour
 
     [Header("Game Over Panel - Buttons")]
     [SerializeField] private Button restartButton;
+    [SerializeField] private TextMeshProUGUI restartButtonText;
+    [SerializeField] private Button menuButton;
+    [SerializeField] private TextMeshProUGUI menuButtonText;
+    [SerializeField] private Button leaderboardButton;
 
     // ──────────────────────────────────────────────────────────
     // TRẠNG THÁI NỘI BỘ
@@ -73,6 +77,12 @@ public class ReviveManager : MonoBehaviour
         if (reviveButton  != null) reviveButton .onClick.AddListener(OnReviveClicked);
         if (skipButton    != null) skipButton   .onClick.AddListener(OnSkipClicked);
         if (restartButton != null) restartButton.onClick.AddListener(RestartGame);
+        if (menuButton    != null) menuButton   .onClick.AddListener(GoToMenu);
+        if (leaderboardButton != null) leaderboardButton.onClick.AddListener(OpenLeaderboard);
+
+        // Gán chữ cho nút
+        if (restartButtonText != null) restartButtonText.text = "CHƠI LẠI [Space/R]";
+        if (menuButtonText    != null) menuButtonText   .text = "VỀ MENU CHÍNH";
 
         // Ẩn toàn bộ UI ngay khi khởi động để không che màn hình chơi
         HideAllUI();
@@ -231,15 +241,36 @@ public class ReviveManager : MonoBehaviour
         if (goScoreText) goScoreText.text = $"Điểm số: <color=#fbbf24><b>{score}</b></color>";
         if (goBestText)  goBestText .text = $"Kỷ lục: <color=#38bdf8><b>{highScore}</b></color>";
         if (goCoinsText) goCoinsText.text = $"Tổng Coin trong ví: <color=#4ade80><b>{totalCoins}</b></color>";
+
+        // Gửi điểm lên Leaderboard trực tuyến nếu có kết nối
+        int finalScore = Mathf.Max(score, highScore);
+        if (UGSLeaderboardManager.Instance != null && finalScore > 0)
+        {
+            _ = UGSLeaderboardManager.Instance.SubmitScoreAsync(finalScore);
+        }
     }
 
     // ──────────────────────────────────────────────────────────
     // CHƠI LẠI / TIỆN ÍCH
     // ──────────────────────────────────────────────────────────
+    public void OpenLeaderboard()
+    {
+        if (LeaderboardUI.Instance != null)
+        {
+            LeaderboardUI.Instance.Open();
+        }
+    }
+
     public void RestartGame()
     {
         Time.timeScale = 1f;
         SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
+    }
+
+    public void GoToMenu()
+    {
+        Time.timeScale = 1f;
+        SceneManager.LoadScene("MenuScence");
     }
 
     private void HideAllUI()
