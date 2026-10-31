@@ -238,11 +238,14 @@ public class ReviveManager : MonoBehaviour
             _ = UGSLeaderboardManager.Instance.SubmitScoreAsync(finalScore);
         }
 
-        // Ưu tiên màn Game Over mới (GameOverPanel trong MenuScence) qua GameUIManager
-        if (GameUIManager.Instance != null)
+        // Ưu tiên màn Game Over mới (GameOverPanel trong MenuScence):
+        // bật cờ GameOverKey để MenuSceneManager hiện Game Over thay vì Menu chính
+        if (Application.CanStreamedLevelBeLoaded("MenuScence"))
         {
             HideAllUI();
-            GameUIManager.Instance.TriggerGameOverScreen();
+            PlayerPrefs.SetInt(MenuSceneManager.GameOverKey, 1);
+            PlayerPrefs.Save();
+            GoToMenu();
             return;
         }
 
