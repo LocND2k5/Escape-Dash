@@ -226,21 +226,10 @@ public class ReviveManager : MonoBehaviour
     // ──────────────────────────────────────────────────────────
     private void ShowGameOverScreen()
     {
-        if (gameOverPanel == null) return;
-
-        if (reviveCanvas)  reviveCanvas.gameObject.SetActive(true);
-        if (overlayGo)     overlayGo.SetActive(true);
-        gameOverPanel.SetActive(true);
-
         int score     = ScoreManage.Instance != null ? ScoreManage.Instance.Score
                       : (ScoreManager.Instance != null ? ScoreManager.Instance.Score : 0);
         int highScore = ScoreManage.Instance != null ? ScoreManage.Instance.HighScore
                       : (ScoreManager.Instance != null ? ScoreManager.Instance.HighScore : 0);
-        int totalCoins = GetTotalCoins();
-
-        if (goScoreText) goScoreText.text = $"Điểm số: <color=#fbbf24><b>{score}</b></color>";
-        if (goBestText)  goBestText .text = $"Kỷ lục: <color=#38bdf8><b>{highScore}</b></color>";
-        if (goCoinsText) goCoinsText.text = $"Tổng Coin trong ví: <color=#4ade80><b>{totalCoins}</b></color>";
 
         // Gửi điểm lên Leaderboard trực tuyến nếu có kết nối
         int finalScore = Mathf.Max(score, highScore);
@@ -248,6 +237,25 @@ public class ReviveManager : MonoBehaviour
         {
             _ = UGSLeaderboardManager.Instance.SubmitScoreAsync(finalScore);
         }
+
+        // Ưu tiên màn Game Over mới (GameOverPanel trong MenuScence) qua GameUIManager
+        if (GameUIManager.Instance != null)
+        {
+            HideAllUI();
+            GameUIManager.Instance.TriggerGameOverScreen();
+            return;
+        }
+
+        // Fallback: GameOverPanel cũ nằm trong ReviveCanvas
+        if (gameOverPanel == null) return;
+
+        if (reviveCanvas)  reviveCanvas.gameObject.SetActive(true);
+        if (overlayGo)     overlayGo.SetActive(true);
+        gameOverPanel.SetActive(true);
+
+        if (goScoreText) goScoreText.text = $"Điểm số: <color=#fbbf24><b>{score}</b></color>";
+        if (goBestText)  goBestText .text = $"Kỷ lục: <color=#38bdf8><b>{highScore}</b></color>";
+        if (goCoinsText) goCoinsText.text = $"Tổng Coin trong ví: <color=#4ade80><b>{GetTotalCoins()}</b></color>";
     }
 
     // ──────────────────────────────────────────────────────────

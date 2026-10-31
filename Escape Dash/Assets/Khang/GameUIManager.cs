@@ -7,7 +7,7 @@ using TMPro;
 /// Quản lý toàn bộ UI trong Gameplay Scene (Linh / Loc):
 /// - HUD hiển thị Điểm (Score), Xu (Coin), Quãng đường (Distance)
 /// - Pause Menu (Tạm dừng, Tiếp tục, Chơi lại, Về Menu)
-/// - Tự động bắt sự kiện Game Over & ghi đè nút xanh ReviveManager để chuyển về Game Over ở MenuScence.
+/// - Game Over: ReviveManager hỏi Hồi sinh trước; bấm Bỏ qua → TriggerGameOverScreen() về Game Over ở MenuScence.
 /// Nằm trong thư mục Assets/Khang/.
 /// </summary>
 public class GameUIManager : MonoBehaviour
@@ -35,6 +35,7 @@ public class GameUIManager : MonoBehaviour
     [SerializeField] private KeyCode pauseKey = KeyCode.Escape;
 
     private bool isPaused = false;
+    private bool isPlayerDead = false; // Đang chờ Hồi sinh / Bỏ qua → khóa phím Pause
 
     private void Awake()
     {
@@ -42,14 +43,18 @@ public class GameUIManager : MonoBehaviour
         else if (Instance != this) { Destroy(gameObject); return; }
     }
 
+    // Không chuyển scene ngay khi Game Over nữa: ReviveManager hiện RevivePanel trước,
+    // chỉ khi bấm Bỏ qua (hoặc hết giờ) mới gọi TriggerGameOverScreen().
     private void OnEnable()
     {
-        GameEvents.OnGameOver += HandleGameOverEvent;
+        GameEvents.OnGameOver      += HandleGameOverEvent;
+        GameEvents.OnPlayerRevived += HandlePlayerRevived;
     }
 
     private void OnDisable()
     {
-        GameEvents.OnGameOver -= HandleGameOverEvent;
+        GameEvents.OnGameOver      -= HandleGameOverEvent;
+        GameEvents.OnPlayerRevived -= HandlePlayerRevived;
     }
 
     private void Start()
@@ -72,7 +77,7 @@ public class GameUIManager : MonoBehaviour
     private void Update()
     {
         // Hỗ trợ phím tắt Esc hoặc P để bật/tắt Pause
-        if (Input.GetKeyDown(pauseKey) || Input.GetKeyDown(KeyCode.P))
+        if (!isPlayerDead && (Input.GetKeyDown(pauseKey) || Input.GetKeyDown(KeyCode.P)))
         {
             if (isPaused) ResumeGame();
             else PauseGame();
@@ -155,7 +160,17 @@ public class GameUIManager : MonoBehaviour
 
     private void HandleGameOverEvent()
     {
-        TriggerGameOverScreen();
+        isPlayerDead = true;
+        if (isPaused) ResumeGame();
+
+        // Không có ReviveManager trong scene → chuyển thẳng sang Game Over như cũ
+        if (ReviveManager.Instance == null)
+            TriggerGameOverScreen();
+    }
+
+    private void HandlePlayerRevived()
+    {
+        isPlayerDead = false;
     }
 
     /// <summary>
