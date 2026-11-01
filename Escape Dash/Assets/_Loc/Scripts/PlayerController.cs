@@ -24,6 +24,7 @@ using UnityEngine;
 [RequireComponent(typeof(Rigidbody))]
 public class PlayerController : MonoBehaviour
 {
+    private float JumpMultiplier => PowerUpManager.IsActive(PowerUpType.SuperJump) ? superJumpMultiplier : 1f;
     [Header("Speed (tốc độ cuộn của map)")]
     public float forwardSpeed = 8f;
     public float maxSpeed = 20f;
@@ -38,6 +39,9 @@ public class PlayerController : MonoBehaviour
     public float gravity = -22f;
     public float slideDuration = 0.8f;
     public float slideHeightRatio = 0.5f;
+
+    [Header("Power-up")]
+    public float superJumpMultiplier = 1.8f;   // nhảy cao gấp bao nhiêu lần khi có Super Jump
 
     // MỚI: khôi phục nhóm Hit Penalty, bỏ hitSlowFactor và slowDuration (không còn giảm tốc)
     [Header("Hit Penalty (vấp Obstacle nhẹ)")]
@@ -240,7 +244,7 @@ public class PlayerController : MonoBehaviour
     {
         if (isSliding) EndSlide(false);
         hitAnimTimer = 0f; // MỚI: khôi phục
-        verticalVelocity = jumpForce;
+        verticalVelocity = jumpForce * JumpMultiplier;
         isGrounded = false;
         airTime = 0f;
         jumpLoopStarted = false;
@@ -253,7 +257,7 @@ public class PlayerController : MonoBehaviour
         slideTimer = slideDuration;
         hitAnimTimer = 0f; // MỚI: khôi phục
 
-        if (!isGrounded) verticalVelocity = -jumpForce;
+        if (!isGrounded) verticalVelocity = -jumpForce * JumpMultiplier;   // lướt xuống nhanh tương ứng khi đang ở trên cao
 
         float newHeight = originalHeight * slideHeightRatio;
         col.height = newHeight;
