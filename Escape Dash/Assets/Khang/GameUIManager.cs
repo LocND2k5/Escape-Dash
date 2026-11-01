@@ -111,20 +111,11 @@ public class GameUIManager : MonoBehaviour
         if (ScoreManage.Instance != null)
         {
             if (scoreText != null) 
-                scoreText.text = "Score: " + ScoreManage.Instance.Score;
+                scoreText.text = ScoreManage.Instance.Score.ToString();
             if (coinText != null) 
-                coinText.text = "Coin: " + ScoreManage.Instance.Coins;
+                coinText.text = ScoreManage.Instance.Coins.ToString();
             if (distanceText != null) 
-                distanceText.text = "Distance: " + Mathf.FloorToInt(ScoreManage.Instance.Distance) + " m";
-        }
-        else if (ScoreManager.Instance != null)
-        {
-            if (scoreText != null) 
-                scoreText.text = "Score: " + ScoreManager.Instance.Score;
-            if (coinText != null) 
-                coinText.text = "Coin: " + ScoreManager.Instance.Coins;
-            if (distanceText != null) 
-                distanceText.text = "Distance: " + Mathf.FloorToInt(ScoreManager.Instance.Distance) + " m";
+                distanceText.text = Mathf.FloorToInt(ScoreManage.Instance.Distance) + " m";
         }
     }
 

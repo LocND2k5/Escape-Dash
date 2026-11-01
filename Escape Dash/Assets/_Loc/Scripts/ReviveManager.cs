@@ -186,8 +186,6 @@ public class ReviveManager : MonoBehaviour
         bool spendSuccess = false;
         if (ScoreManage.Instance != null)
             spendSuccess = ScoreManage.Instance.TrySpendCoins(reviveCost);
-        else if (ScoreManager.Instance != null)
-            spendSuccess = ScoreManager.Instance.TrySpendCoins(reviveCost);
         else
         {
             int total = PlayerPrefs.GetInt("TotalCoins", 0);
@@ -226,10 +224,8 @@ public class ReviveManager : MonoBehaviour
     // ──────────────────────────────────────────────────────────
     private void ShowGameOverScreen()
     {
-        int score     = ScoreManage.Instance != null ? ScoreManage.Instance.Score
-                      : (ScoreManager.Instance != null ? ScoreManager.Instance.Score : 0);
-        int highScore = ScoreManage.Instance != null ? ScoreManage.Instance.HighScore
-                      : (ScoreManager.Instance != null ? ScoreManager.Instance.HighScore : 0);
+        int score     = ScoreManage.Instance != null ? ScoreManage.Instance.Score : 0;
+        int highScore = ScoreManage.Instance != null ? ScoreManage.Instance.HighScore : 0;
 
         // Gửi điểm lên Leaderboard trực tuyến nếu có kết nối
         int finalScore = Mathf.Max(score, highScore);
@@ -295,7 +291,6 @@ public class ReviveManager : MonoBehaviour
     private int GetTotalCoins()
     {
         if (ScoreManage.Instance  != null) return ScoreManage.Instance.TotalCoins;
-        if (ScoreManager.Instance != null) return ScoreManager.Instance.TotalCoins;
         return PlayerPrefs.GetInt("TotalCoins", 0);
     }
 }

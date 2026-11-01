@@ -162,11 +162,11 @@ public class ScoreManage : MonoBehaviour
         int meters = Mathf.FloorToInt(Distance);
 
         if (scoreText && (force || score != shownScore))
-            scoreText.text = "Score: " + score;
+            scoreText.text = score.ToString();
         if (coinText && (force || Coins != shownCoins))
-            coinText.text = "Coin: " + Coins;
+            coinText.text = Coins.ToString();
         if (distanceText && (force || meters != shownMeters))
-            distanceText.text = "Distance: " + meters + " m";
+            distanceText.text = meters + " m";
 
         shownScore = score;
         shownCoins = Coins;
