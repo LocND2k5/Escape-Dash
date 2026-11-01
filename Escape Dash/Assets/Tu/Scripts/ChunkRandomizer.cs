@@ -15,6 +15,7 @@ public class ChunkRandomizer : MonoBehaviour
         public GameObject prefab;          // prefab có script Obstacle (Light / Heavy chọn trên prefab)
         public float weight = 1f;          // càng lớn càng hay xuất hiện
         public int poolSize = 6;           // số bản tạo sẵn trong 1 chunk
+        public int rowsOccupied = 1;       // vật dài (tàu + dốc) chiếm bao nhiêu hàng. Pivot đặt ở GIỮA phần chiếm
     }
 
     [System.Serializable]
@@ -118,27 +119,35 @@ public class ChunkRandomizer : MonoBehaviour
             chunksSincePowerUp = 0;
         }
 
+        // blockedUntil[lane] = chỉ số hàng cuối cùng mà làn này còn bị vật dài (tàu) chiếm. -1 = không bị chiếm
+        int[] blockedUntil = { -1, -1, -1 };
+
         for (int r = 0; r < rowCount; r++)
         {
             float z = firstRowZ + r * rowSpacing;
 
-            // Làn an toàn chỉ lệch tối đa 1 làn mỗi hàng
-            safeLane = Mathf.Clamp(safeLane + Random.Range(-1, 2), 0, 2);
+            safeLane = ChooseSafeLane(r, blockedUntil);
 
             if (Random.value >= emptyRowChance)
             {
                 for (int lane = 0; lane < 3; lane++)
                 {
                     if (lane == safeLane) continue;
+                    if (blockedUntil[lane] >= r) continue;          // làn này đang bị tàu chiếm
                     if (Random.value > obstacleChance) continue;
-                    int idx = PickObstacle();
-                    if (idx >= 0) Place(obstaclePools[idx], lane, z);
+
+                    int idx = PickObstacle(rowCount - r);           // chỉ chọn loại còn vừa số hàng còn lại
+                    if (idx < 0) continue;
+
+                    int n = Mathf.Max(1, obstacles[idx].rowsOccupied);
+                    float oz = z + (n - 1) * rowSpacing * 0.5f;     // pivot ở giữa phần chiếm
+                    if (Place(obstaclePools[idx], lane, oz))
+                        blockedUntil[lane] = r + n - 1;
                 }
             }
 
             if (r == powerRow)
             {
-                // Power-up đứng thay chỗ coin ở làn an toàn của hàng này
                 int pi = PickPowerUp();
                 if (pi >= 0) Place(powerUpPools[pi], safeLane, z);
             }
@@ -153,18 +162,39 @@ public class ChunkRandomizer : MonoBehaviour
         }
     }
 
-    int PickObstacle()
+    // Làn an toàn chỉ lệch tối đa 1 làn so với hàng trước, và không được là làn đang bị tàu chiếm
+    int ChooseSafeLane(int row, int[] blockedUntil)
     {
-        if (totalWeight <= 0f) return -1;
-        float r = Random.value * totalWeight;
+        int[] candidates = new int[3];
+        int count = 0;
+        for (int d = -1; d <= 1; d++)
+        {
+            int l = safeLane + d;
+            if (l < 0 || l > 2) continue;
+            if (blockedUntil[l] >= row) continue;
+            candidates[count++] = l;
+        }
+        return count > 0 ? candidates[Random.Range(0, count)] : safeLane;
+    }
+
+    int PickObstacle(int rowsLeft)
+    {
+        float total = 0f;
+        for (int i = 0; i < obstacles.Length; i++)
+            if (CanUse(obstacles[i], rowsLeft)) total += Mathf.Max(0f, obstacles[i].weight);
+        if (total <= 0f) return -1;
+
+        float r = Random.value * total;
         for (int i = 0; i < obstacles.Length; i++)
         {
-            if (obstacles[i].prefab == null) continue;
+            if (!CanUse(obstacles[i], rowsLeft)) continue;
             r -= Mathf.Max(0f, obstacles[i].weight);
             if (r <= 0f) return i;
         }
         return -1;
     }
+
+    bool CanUse(Option o, int rowsLeft) => o.prefab != null && Mathf.Max(1, o.rowsOccupied) <= rowsLeft;
 
     int PickPowerUp()
     {
@@ -179,8 +209,8 @@ public class ChunkRandomizer : MonoBehaviour
         return -1;
     }
 
-    // Lấy 1 bản đang tắt trong pool, đặt vào đúng làn/Z, giữ nguyên Y của prefab
-    void Place(List<GameObject> pool, int lane, float z)
+    // Lấy 1 bản đang tắt trong pool, đặt vào đúng làn/Z, giữ nguyên Y của prefab. Trả về false nếu pool hết.
+    bool Place(List<GameObject> pool, int lane, float z)
     {
         foreach (var g in pool)
         {
@@ -188,9 +218,9 @@ public class ChunkRandomizer : MonoBehaviour
             float y = g.transform.localPosition.y;
             g.transform.localPosition = new Vector3((lane - 1) * laneDistance, y, z);
             g.SetActive(true);
-            return;
+            return true;
         }
-        // pool hết: bỏ qua (tăng poolSize nếu muốn dày hơn)
+        return false;   // pool hết: bỏ qua (tăng poolSize nếu muốn dày hơn)
     }
 
     // Hộp cyan = vị trí pivot của obstacle ở mỗi làn/hàng. So với vạch vàng của đường để kiểm tra lệch.
