@@ -1,3 +1,4 @@
+using System.Collections;
 using UnityEngine;
 
 // Gắn lên Player (root). Pivot của Player nằm ở CHÂN. Tag = "Player".
@@ -124,6 +125,31 @@ public class PlayerController : MonoBehaviour
     {
         isDead = true;
         Play("Death");
+    }
+
+    /// <summary>
+    /// Chờ animation Death chạy xong (có giới hạn maxWait giây để không bị treo nếu state lặp/thiếu).
+    /// </summary>
+    public IEnumerator WaitForDeathAnimation(float maxWait = 3f)
+    {
+        if (animator == null) yield break;
+
+        float elapsed = 0f;
+        // Chờ CrossFade chuyển sang state Death
+        while (elapsed < maxWait && !animator.GetCurrentAnimatorStateInfo(0).IsName("Death"))
+        {
+            elapsed += Time.deltaTime;
+            yield return null;
+        }
+
+        // Chờ Death phát hết một lượt
+        while (elapsed < maxWait)
+        {
+            var info = animator.GetCurrentAnimatorStateInfo(0);
+            if (!info.IsName("Death") || info.normalizedTime >= 1f) yield break;
+            elapsed += Time.deltaTime;
+            yield return null;
+        }
     }
 
     public void Revive()
