@@ -27,9 +27,6 @@ public class ReviveManager : MonoBehaviour
     [Tooltip("Thời gian đếm ngược (giây)")]
     public float countdownDuration = 5f;
 
-    [Tooltip("Thời gian chờ tối đa (giây) cho animation Death trước khi hiện panel hồi sinh")]
-    public float maxDeathWait = 3f;
-
     // ──────────────────────────────────────────────────────────
     // THAM CHIẾU UI — kéo vào từ Hierarchy trong Inspector
     // ──────────────────────────────────────────────────────────
@@ -101,12 +98,8 @@ public class ReviveManager : MonoBehaviour
 
     private IEnumerator ShowPromptRoutine()
     {
-        // Chờ animation Death của nhân vật chạy xong rồi mới hiện panel hồi sinh
-        var player = FindFirstObjectByType<PlayerController>();
-        if (player != null)
-            yield return player.WaitForDeathAnimation(maxDeathWait);
-        else
-            yield return new WaitForSeconds(0.3f);
+        // Chờ 0.3s để animation ngã/va chạm bắt đầu mượt
+        yield return new WaitForSeconds(0.3f);
 
         int totalCoins = GetTotalCoins();
         hasEnoughCoins = totalCoins >= reviveCost;
