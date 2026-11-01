@@ -18,11 +18,14 @@ public class ScoreManage : MonoBehaviour
     [Header("Settings")]
     [SerializeField] private float pointsPerMeter = 1f;
     [SerializeField] private int pointsPerCoin = 10;
+    [SerializeField] private int doubleScoreMultiplier = 2;
 
     public float Distance { get; private set; }
     public int Coins { get; private set; }
     public int TotalCoins { get; private set; } // Tổng coin tích luỹ qua các ván
-    public int Score => Mathf.FloorToInt(Distance * pointsPerMeter) + Coins * pointsPerCoin;
+    // Điểm quãng đường cộng dồn theo từng frame (để nhân đôi đúng đoạn có power-up DoubleScore)
+    private float distancePoints;
+    public int Score => Mathf.FloorToInt(distancePoints) + Coins * pointsPerCoin;
     public int HighScore { get; private set; }
     public float BestDistance { get; private set; }
     public bool IsNewHighScore { get; private set; }   // true nếu ván vừa rồi phá kỷ lục (cho UI Game Over)
@@ -45,6 +48,8 @@ public class ScoreManage : MonoBehaviour
     public const string LastDistanceKey = "LastDistance";
     public const string LastCoinsKey = "LastCoins";
     public const string NewHighScoreKey = "NewHighScore"; // 1 = ván vừa rồi phá kỷ lục
+
+    private int Multiplier => PowerUpManager.IsActive(PowerUpType.DoubleScore) ? doubleScoreMultiplier : 1;
 
     private void Awake()
     {
@@ -77,6 +82,7 @@ public class ScoreManage : MonoBehaviour
     public void ResetRun()
     {
         Distance = 0f;
+        distancePoints = 0f;
         Coins = 0;
         IsNewHighScore = false;
         startDistance = spawner != null ? spawner.Distance : 0f;
@@ -109,15 +115,18 @@ public class ScoreManage : MonoBehaviour
     private void Update()
     {
         if (!running || spawner == null) return;
-        Distance = Mathf.Max(0f, spawner.Distance - startDistance);
+        float newDistance = Mathf.Max(0f, spawner.Distance - startDistance);
+        distancePoints += (newDistance - Distance) * pointsPerMeter * Multiplier;
+        Distance = newDistance;
         RefreshUI();
     }
 
     private void AddCoin(int value)
     {
         if (!running) return;
-        Coins += value;
-        TotalCoins += value; // Lưu vĩnh viễn vào ví
+        int gained = value * Multiplier;
+        Coins += gained;
+        TotalCoins += gained; // Lưu vĩnh viễn vào ví
         PlayerPrefs.SetInt(TotalCoinsKey, TotalCoins);
         RefreshUI();
     }

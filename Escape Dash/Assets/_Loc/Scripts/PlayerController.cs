@@ -32,6 +32,10 @@ public class PlayerController : MonoBehaviour
     public float slideDuration = 0.8f;
     public float slideHeightRatio = 0.4f;
 
+    [Header("Power-up")]
+    public float superJumpMultiplier = 1.8f;   // nhảy cao gấp bao nhiêu lần khi có Super Jump
+    private float JumpMultiplier => PowerUpManager.IsActive(PowerUpType.SuperJump) ? superJumpMultiplier : 1f;
+
     [Header("Hit Penalty (vấp Obstacle)")]
     public float hitSlowFactor = 0.4f;     // tốc độ còn bao nhiêu % ngay khi vấp (0.4 = 40%)
     public float slowDuration = 2f;        // thời gian tốc độ hồi phục về bình thường
@@ -249,7 +253,7 @@ public class PlayerController : MonoBehaviour
     {
         if (isSliding) EndSlide(false);
         hitAnimTimer = 0f;
-        verticalVelocity = jumpForce;
+        verticalVelocity = jumpForce * JumpMultiplier;
         isGrounded = false;
         airTime = 0f;
         jumpLoopStarted = false;
@@ -262,7 +266,7 @@ public class PlayerController : MonoBehaviour
         slideTimer = slideDuration;
         hitAnimTimer = 0f;
 
-        if (!isGrounded) verticalVelocity = -jumpForce;
+        if (!isGrounded) verticalVelocity = -jumpForce * JumpMultiplier;   // lướt xuống nhanh tương ứng khi đang ở trên cao
 
         float newHeight = originalHeight * slideHeightRatio;
         col.height = newHeight;
