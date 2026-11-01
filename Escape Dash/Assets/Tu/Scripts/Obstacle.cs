@@ -1,5 +1,8 @@
 using UnityEngine;
 
+// MỚI: loại va chạm. Light = vấp (còn cơ hội), Heavy = thua ngay.
+public enum ObstacleHitType { Light, Heavy }
+
 // Gắn lên prefab chướng ngại vật (low barrier, overhead barrier...).
 // Yêu cầu: Collider có bật Is Trigger. Player có tag "Player" + Rigidbody (kinematic cũng được).
 //
@@ -10,8 +13,8 @@ using UnityEngine;
 [RequireComponent(typeof(Collider))]
 public class Obstacle : MonoBehaviour
 {
-    [Tooltip("Tích chọn nếu muốn va vào là chết ngay. Bỏ trống để áp dụng luật vấp ngã 2 lần.")]
-    [SerializeField] private bool instantDeath = false;
+    // MỚI: chọn loại va chạm cho từng prefab trong Inspector
+    [SerializeField] private ObstacleHitType hitType = ObstacleHitType.Light;
 
     private void Reset()
     {
@@ -22,13 +25,10 @@ public class Obstacle : MonoBehaviour
     {
         if (!other.CompareTag("Player")) return;
 
-        if (instantDeath)
-        {
-            GameEvents.RaiseGameOver();   // Chết ngay lập tức
-        }
+        // MỚI: Heavy thua ngay, Light chỉ báo "player bị vấp" cho PlayerController xử lý
+        if (hitType == ObstacleHitType.Heavy)
+            GameEvents.RaiseGameOver();
         else
-        {
-            GameEvents.RaisePlayerHit();  // Vấp ngã lần 1; PlayerController xử lý luật 2 lần
-        }
+            GameEvents.RaisePlayerHit();
     }
 }

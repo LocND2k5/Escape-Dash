@@ -2,17 +2,16 @@ using UnityEngine;
 
 // Gắn lên Player (root). Pivot của Player nằm ở CHÂN. Tag = "Player".
 // Cần: CapsuleCollider (không trigger) + Rigidbody (Is Kinematic). Model là object con.
-// KHÔNG gắn chung với TempPlayerRunner.
 //
-// MAP CHẠY, PLAYER ĐỨNG YÊN TRÊN TRỤC Z:
-// Player chỉ đổi làn (X) và nhảy (Y). TrackManager đọc CurrentSpeed để kéo các khúc đường
-// về phía Player, nên mọi tốc độ (tăng tốc dần, giảm tốc khi vấp) đều nằm ở script này.
-//
+// MAP CHẠY, PLAYER ĐỨNG YÊN TRÊN TRỤC Z: Player chỉ đổi làn (X) và nhảy (Y).
 // Animator: state tên đúng như sau (không cần transition): Run, JumpStart, JumpLoop, Roll, Hit, Death
 //
-// Luật chơi:
-// - Chạm Obstacle lần 1: giảm tốc, phát animation Hit, Bull áp sát.
-// - Chạm Obstacle lần nữa trong dangerDuration giây: Bull bắt được -> Game Over.
+// Luật chơi (giống Subway Surfers):
+// - Obstacle Light: vấp lần 1, vấp lần nữa trong dangerDuration giây -> Game Over.
+// - Obstacle Heavy: Game Over ngay.
+//
+// MỚI: MẶT ĐỠ (nóc tàu, dốc). Mỗi frame bắn 1 tia xuống dưới chân, chỉ trúng collider thuộc
+// layer "walkableMask". Độ cao trúng = mặt đất mới. Có dốc thì tự chạy lên, hết nóc thì rơi xuống.
 [RequireComponent(typeof(CapsuleCollider))]
 [RequireComponent(typeof(Rigidbody))]
 public class PlayerController : MonoBehaviour
@@ -32,30 +31,36 @@ public class PlayerController : MonoBehaviour
     public float slideDuration = 0.8f;
     public float slideHeightRatio = 0.5f;
 
-    [Header("Hit Penalty (vấp Obstacle)")]
-    public float hitSlowFactor = 0.4f;     // tốc độ còn bao nhiêu % ngay khi vấp (0.4 = 40%)
-    public float slowDuration = 2f;        // thời gian tốc độ hồi phục về bình thường
-    public float dangerDuration = 4f;      // vấp lần nữa trong khoảng này -> bị Bull bắt
-    public float invulnerableTime = 0.8f;  // miễn nhiễm ngắn sau khi vấp (tránh bị tính 2 lần)
-    public float hitAnimDuration = 0.6f;   // thời gian phát animation Hit
+    [Header("Power-up")]
+    public float superJumpMultiplier = 1.8f;   // nhảy cao gấp bao nhiêu lần khi có Super Jump
+
+    [Header("Mặt đỡ (nóc tàu, dốc)")]
+    [SerializeField] private LayerMask walkableMask;   // chọn layer "Walkable"
+    [SerializeField] private float stepUp = 0.5f;      // cao hơn chân tối đa bao nhiêu thì tự bước lên (dốc)
+    [SerializeField] private float stepDown = 0.3f;    // thấp hơn chân tối đa bao nhiêu thì vẫn bám (xuống dốc), hơn thì rơi
+
+    [Header("Hit Penalty (vấp Obstacle nhẹ)")]
+    public float dangerDuration = 4f;
+    public float invulnerableTime = 0.8f;
+    public float hitAnimDuration = 0.6f;
 
     [Header("Animation")]
     [SerializeField] private Animator animator;
     [SerializeField] private float fadeTime = 0.1f;
     [SerializeField] private float jumpLoopDelay = 0.25f;
 
-    // Tốc độ thực tế mà map đang cuộn (đã tính giảm tốc khi vấp; = 0 khi đã thua)
     public float CurrentSpeed
     {
         get
         {
             if (isDead) return 0f;
-            float multiplier = 1f;
-            if (slowTimer > 0f)
-                multiplier = Mathf.Lerp(1f, hitSlowFactor, slowTimer / slowDuration);
-            return forwardSpeed * multiplier;
+            return forwardSpeed;
         }
     }
+
+    public bool IsInDanger => dangerTimer > 0f;
+
+    private float JumpMultiplier => PowerUpManager.IsActive(PowerUpType.SuperJump) ? superJumpMultiplier : 1f;
 
     private int currentLane = 1;
     private float verticalVelocity;
@@ -65,9 +70,8 @@ public class PlayerController : MonoBehaviour
     private float slideTimer;
     private float airTime;
     private bool jumpLoopStarted;
-    private float groundY;
+    private float groundY;          // độ cao mặt đường gốc
 
-    private float slowTimer;
     private float dangerTimer;
     private float invulnTimer;
     private float hitAnimTimer;
@@ -127,7 +131,7 @@ public class PlayerController : MonoBehaviour
     public void Revive()
     {
         isDead = false;
-        slowTimer = dangerTimer = invulnTimer = hitAnimTimer = 0f;
+        dangerTimer = invulnTimer = hitAnimTimer = 0f;
         Play("Run");
     }
 
@@ -135,14 +139,12 @@ public class PlayerController : MonoBehaviour
     {
         if (isDead || invulnTimer > 0f) return;
 
-        // Vấp lần nữa khi Bull còn đang áp sát -> bị bắt
         if (dangerTimer > 0f)
         {
             GameEvents.RaiseGameOver();
             return;
         }
 
-        slowTimer = slowDuration;
         dangerTimer = dangerDuration;
         invulnTimer = invulnerableTime;
 
@@ -168,7 +170,6 @@ public class PlayerController : MonoBehaviour
     private void TickTimers()
     {
         float dt = Time.deltaTime;
-        if (slowTimer > 0f) slowTimer -= dt;
         if (dangerTimer > 0f) dangerTimer -= dt;
         if (invulnTimer > 0f) invulnTimer -= dt;
 
@@ -193,19 +194,48 @@ public class PlayerController : MonoBehaviour
             StartSlide();
     }
 
+    // Độ cao mặt đỡ ngay dưới chân (dốc / nóc tàu), không có thì là mặt đường gốc.
+    private float GetGroundHeight(Vector3 pos)
+    {
+        if (walkableMask.value == 0) return groundY;
+
+        // Map chạy bằng cách dời transform mỗi frame, nên đồng bộ vật lý trước khi bắn tia
+        Physics.SyncTransforms();
+
+        float above = stepUp + 0.1f;   // tia bắt đầu cao hơn chân một chút để thấy được dốc đang dâng lên
+        Vector3 origin = pos + Vector3.up * above;
+        if (Physics.Raycast(origin, Vector3.down, out RaycastHit hit, above + 60f,
+                            walkableMask, QueryTriggerInteraction.Ignore))
+            return Mathf.Max(groundY, hit.point.y);
+
+        return groundY;
+    }
+
     private void Move()
     {
         float dt = Time.deltaTime;
         Vector3 pos = transform.position;
 
-        // Tăng tốc dần (map cuộn nhanh dần). Player KHÔNG di chuyển theo Z.
         forwardSpeed = Mathf.Min(forwardSpeed + speedIncreasePerSecond * dt, maxSpeed);
 
         float targetX = (currentLane - 1) * laneDistance;
         pos.x = Mathf.MoveTowards(pos.x, targetX, laneChangeSpeed * dt);
 
+        float ground = GetGroundHeight(pos);
+
+        if (isGrounded)
+        {
+            float diff = ground - pos.y;
+            if (diff >= -stepDown && diff <= stepUp)
+                pos.y = ground;              // bám theo dốc / mặt nóc
+            else if (diff < -stepDown)
+                StartFalling();              // hết mặt đỡ (cuối nóc, ra khỏi làn) -> rơi
+            // diff > stepUp: bức tường quá cao, bỏ qua (trigger Obstacle sẽ xử lý)
+        }
+
         if (!isGrounded)
         {
+            float oldY = pos.y;
             airTime += dt;
             verticalVelocity += gravity * dt;
             pos.y += verticalVelocity * dt;
@@ -216,9 +246,10 @@ public class PlayerController : MonoBehaviour
                 Play("JumpLoop");
             }
 
-            if (pos.y <= groundY)
+            // Chỉ đáp xuống mặt đỡ nếu trước đó không thấp hơn nó quá stepUp (tránh bị "hút" lên nóc từ bên dưới)
+            if (verticalVelocity <= 0f && pos.y <= ground && ground - oldY <= stepUp)
             {
-                pos.y = groundY;
+                pos.y = ground;
                 verticalVelocity = 0f;
                 isGrounded = true;
                 airTime = 0f;
@@ -230,11 +261,20 @@ public class PlayerController : MonoBehaviour
         transform.position = pos;
     }
 
+    private void StartFalling()
+    {
+        isGrounded = false;
+        verticalVelocity = 0f;
+        airTime = 0f;
+        jumpLoopStarted = false;
+        hitAnimTimer = 0f;
+    }
+
     private void Jump()
     {
         if (isSliding) EndSlide(false);
         hitAnimTimer = 0f;
-        verticalVelocity = jumpForce;
+        verticalVelocity = jumpForce * JumpMultiplier;
         isGrounded = false;
         airTime = 0f;
         jumpLoopStarted = false;
@@ -247,7 +287,7 @@ public class PlayerController : MonoBehaviour
         slideTimer = slideDuration;
         hitAnimTimer = 0f;
 
-        if (!isGrounded) verticalVelocity = -jumpForce;
+        if (!isGrounded) verticalVelocity = -jumpForce * JumpMultiplier;
 
         float newHeight = originalHeight * slideHeightRatio;
         col.height = newHeight;

@@ -4,6 +4,7 @@ using UnityEngine;
 // and it is centered on X = 0. Type the real road length here; nothing is measured at runtime.
 public class Chunk : MonoBehaviour
 {
+    ChunkRandomizer randomizer;
     [SerializeField] float length = 20f;
 
     public float Length => length;
@@ -23,6 +24,7 @@ public class Chunk : MonoBehaviour
             children[i] = all[i].gameObject;
             startedActive[i] = children[i].activeSelf;
         }
+        randomizer = GetComponent<ChunkRandomizer>();
     }
 
     // Called by the spawner every time the chunk is reused: brings back collected coins etc.
@@ -31,6 +33,7 @@ public class Chunk : MonoBehaviour
         for (int i = 0; i < children.Length; i++)
             if (children[i] != gameObject)
                 children[i].SetActive(startedActive[i]);
+        if (randomizer != null) randomizer.Generate();
     }
 
     // Yellow lines show where the code thinks the chunk starts and ends.
