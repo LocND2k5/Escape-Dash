@@ -246,11 +246,18 @@ public class MenuSceneManager : MonoBehaviour
     private void LoadGameplayScene()
     {
         Time.timeScale = 1f;
-        if (Application.CanStreamedLevelBeLoaded("Loc"))
+
+        if (Application.CanStreamedLevelBeLoaded("Loc 1"))
+            SceneManager.LoadScene("Loc 1");
+        else if (Application.CanStreamedLevelBeLoaded("Loc"))
             SceneManager.LoadScene("Loc");
         else if (Application.CanStreamedLevelBeLoaded("Linh"))
             SceneManager.LoadScene("Linh");
         else
-            SceneManager.LoadScene(1);
+        {
+            Debug.LogError(
+                "MenuSceneManager: Gameplay scene is missing from Build Settings. " +
+                "Add Loc 1.unity or Linh.unity before building.");
+        }
     }
 }

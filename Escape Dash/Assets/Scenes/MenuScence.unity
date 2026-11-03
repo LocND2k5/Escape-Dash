@@ -497,7 +497,7 @@ MonoBehaviour:
     m_PersistentCalls:
       m_Calls:
       - m_Target: {fileID: 1763342359}
-        m_TargetAssemblyTypeName: MainMenu, Assembly-CSharp
+        m_TargetAssemblyTypeName: MenuSceneManager, Assembly-CSharp
         m_MethodName: OnConfirmNameClicked
         m_Mode: 1
         m_Arguments:
@@ -1041,7 +1041,7 @@ MonoBehaviour:
     m_PersistentCalls:
       m_Calls:
       - m_Target: {fileID: 1763342359}
-        m_TargetAssemblyTypeName: MainMenu, Assembly-CSharp
+        m_TargetAssemblyTypeName: MenuSceneManager, Assembly-CSharp
         m_MethodName: QuitGame
         m_Mode: 1
         m_Arguments:
@@ -1858,7 +1858,7 @@ MonoBehaviour:
     m_PersistentCalls:
       m_Calls:
       - m_Target: {fileID: 1763342359}
-        m_TargetAssemblyTypeName: MainMenu, Assembly-CSharp
+        m_TargetAssemblyTypeName: MenuSceneManager, Assembly-CSharp
         m_MethodName: OnCancelNameClicked
         m_Mode: 1
         m_Arguments:
@@ -4764,7 +4764,7 @@ MonoBehaviour:
     m_PersistentCalls:
       m_Calls:
       - m_Target: {fileID: 1763342359}
-        m_TargetAssemblyTypeName: MainMenu, Assembly-CSharp
+        m_TargetAssemblyTypeName: MenuSceneManager, Assembly-CSharp
         m_MethodName: OpenLeaderboard
         m_Mode: 0
         m_Arguments:
