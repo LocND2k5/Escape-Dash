@@ -1,4 +1,3 @@
-using System.Collections;
 using UnityEngine;
 
 // Gắn lên Player (root). Pivot của Player nằm ở CHÂN. Tag = "Player".
@@ -32,6 +31,10 @@ public class PlayerController : MonoBehaviour
     public float gravity = -22f;
     public float slideDuration = 0.8f;
     public float slideHeightRatio = 0.4f;
+
+    [Header("Power-up")]
+    public float superJumpMultiplier = 1.8f;   // nhảy cao gấp bao nhiêu lần khi có Super Jump
+    private float JumpMultiplier => PowerUpManager.IsActive(PowerUpType.SuperJump) ? superJumpMultiplier : 1f;
 
     [Header("Hit Penalty (vấp Obstacle)")]
     public float hitSlowFactor = 0.4f;     // tốc độ còn bao nhiêu % ngay khi vấp (0.4 = 40%)
@@ -125,31 +128,6 @@ public class PlayerController : MonoBehaviour
     {
         isDead = true;
         Play("Death");
-    }
-
-    /// <summary>
-    /// Chờ animation Death chạy xong (có giới hạn maxWait giây để không bị treo nếu state lặp/thiếu).
-    /// </summary>
-    public IEnumerator WaitForDeathAnimation(float maxWait = 3f)
-    {
-        if (animator == null) yield break;
-
-        float elapsed = 0f;
-        // Chờ CrossFade chuyển sang state Death
-        while (elapsed < maxWait && !animator.GetCurrentAnimatorStateInfo(0).IsName("Death"))
-        {
-            elapsed += Time.deltaTime;
-            yield return null;
-        }
-
-        // Chờ Death phát hết một lượt
-        while (elapsed < maxWait)
-        {
-            var info = animator.GetCurrentAnimatorStateInfo(0);
-            if (!info.IsName("Death") || info.normalizedTime >= 1f) yield break;
-            elapsed += Time.deltaTime;
-            yield return null;
-        }
     }
 
     public void Revive()
@@ -275,7 +253,7 @@ public class PlayerController : MonoBehaviour
     {
         if (isSliding) EndSlide(false);
         hitAnimTimer = 0f;
-        verticalVelocity = jumpForce;
+        verticalVelocity = jumpForce * JumpMultiplier;
         isGrounded = false;
         airTime = 0f;
         jumpLoopStarted = false;
@@ -288,7 +266,7 @@ public class PlayerController : MonoBehaviour
         slideTimer = slideDuration;
         hitAnimTimer = 0f;
 
-        if (!isGrounded) verticalVelocity = -jumpForce;
+        if (!isGrounded) verticalVelocity = -jumpForce * JumpMultiplier;   // lướt xuống nhanh tương ứng khi đang ở trên cao
 
         float newHeight = originalHeight * slideHeightRatio;
         col.height = newHeight;
@@ -311,6 +289,23 @@ public class PlayerController : MonoBehaviour
         col.height = originalHeight;
         col.center = originalCenter;
         if (playRun && isGrounded) Play("Run");
+    }
+
+    // Chờ animation "Death" chạy xong (hoặc quá maxWait giây thì thôi, phòng khi thiếu state).
+    public System.Collections.IEnumerator WaitForDeathAnimation(float maxWait)
+    {
+        if (animator == null) yield break;
+
+        float t = 0f;
+        while (t < maxWait)
+        {
+            var info = animator.GetCurrentAnimatorStateInfo(0);
+            if (info.IsName("Death") && !animator.IsInTransition(0) && info.normalizedTime >= 1f)
+                yield break;
+
+            t += Time.unscaledDeltaTime;
+            yield return null;
+        }
     }
 
     private void Play(string state)
