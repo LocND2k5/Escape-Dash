@@ -18,7 +18,13 @@ public static class GameHUDBuilder
     static Material outlineMat;
 
     [MenuItem("Tools/Build Game HUD")]
-    public static void Build()
+    public static void Build() => BuildHUD(true);
+
+    // Chỉ dựng Score / Distance / Coin, không có hàng icon power-up
+    [MenuItem("Tools/Build Score HUD Only")]
+    public static void BuildScoreOnly() => BuildHUD(false);
+
+    static void BuildHUD(bool withPowerUps)
     {
         // ---------- Canvas ----------
         Canvas canvas = Object.FindFirstObjectByType<Canvas>();
@@ -93,6 +99,9 @@ public static class GameHUDBuilder
         var coinText = NewText("CoinText", coinPanel, "0", 56f, new Color(1f, 0.84f, 0.29f), TextAlignmentOptions.MidlineRight, true);
         Place(coinText.rectTransform, new Vector2(1f, 0.5f), new Vector2(1f, 0.5f), new Vector2(-26f, 0f), new Vector2(200f, 70f));
 
+        GameObject magnetRoot = null, starRoot = null, shoesRoot = null;
+        if (withPowerUps)
+        {
         // ---------- Power-up (dưới Score) ----------
         var row = NewRect("PowerUpRow", root);
         Place(row, TL, TL, new Vector2(40f, -232f), new Vector2(520f, 130f));
@@ -104,9 +113,9 @@ public static class GameHUDBuilder
         layout.childForceExpandWidth = false;
         layout.childForceExpandHeight = false;
 
-        BuildPowerIcon(row, "Icon_Magnet", iconMagnet, knob, new Color(0.25f, 0.62f, 1f), out var magnetRoot, out var magnetFill, out var magnetTime);
-        BuildPowerIcon(row, "Icon_DoubleScore", iconStar, knob, new Color(1f, 0.8f, 0.2f), out var starRoot, out var starFill, out var starTime);
-        BuildPowerIcon(row, "Icon_SuperJump", iconShoes, knob, new Color(1f, 0.38f, 0.32f), out var shoesRoot, out var shoesFill, out var shoesTime);
+        BuildPowerIcon(row, "Icon_Magnet", iconMagnet, knob, new Color(0.25f, 0.62f, 1f), out magnetRoot, out var magnetFill, out var magnetTime);
+        BuildPowerIcon(row, "Icon_DoubleScore", iconStar, knob, new Color(1f, 0.8f, 0.2f), out starRoot, out var starFill, out var starTime);
+        BuildPowerIcon(row, "Icon_SuperJump", iconShoes, knob, new Color(1f, 0.38f, 0.32f), out shoesRoot, out var shoesFill, out var shoesTime);
 
         // ---------- Gắn script ----------
         var hud = row.gameObject.AddComponent<PowerUpHUD>();
@@ -118,6 +127,15 @@ public static class GameHUDBuilder
         SetEntry(entries.GetArrayElementAtIndex(2), 2, shoesRoot, shoesFill, shoesTime);
         hso.ApplyModifiedProperties();
 
+        // Icon power-up ẩn lúc đầu, PowerUpHUD sẽ bật khi nhặt
+        magnetRoot.SetActive(false);
+        starRoot.SetActive(false);
+        shoesRoot.SetActive(false);
+
+        if (iconMagnet == null || iconStar == null || iconShoes == null)
+            Debug.LogWarning("GameHUDBuilder: không tìm thấy sprite icon_magnet / icon_star / icon_shoes (ảnh phải ở Sprite Mode = Single). Kéo sprite vào ô Icon bằng tay.");
+        }
+
         var sm = Object.FindFirstObjectByType<ScoreManage>();
         if (sm != null)
         {
@@ -128,14 +146,6 @@ public static class GameHUDBuilder
             so.ApplyModifiedProperties();
         }
         else Debug.LogWarning("GameHUDBuilder: không thấy ScoreManage trong scene, hãy tự kéo Score/Coin/Distance Text vào.");
-
-        // Icon power-up ẩn lúc đầu, PowerUpHUD sẽ bật khi nhặt
-        magnetRoot.SetActive(false);
-        starRoot.SetActive(false);
-        shoesRoot.SetActive(false);
-
-        if (iconMagnet == null || iconStar == null || iconShoes == null)
-            Debug.LogWarning("GameHUDBuilder: không tìm thấy sprite icon_magnet / icon_star / icon_shoes (ảnh phải ở Sprite Mode = Single). Kéo sprite vào ô Icon bằng tay.");
 
         EditorSceneManager.MarkSceneDirty(canvas.gameObject.scene);
         Selection.activeGameObject = root.gameObject;

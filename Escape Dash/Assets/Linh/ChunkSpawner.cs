@@ -28,12 +28,49 @@ public class ChunkSpawner : MonoBehaviour
     public float Distance { get; private set; }   // meters travelled since the run started
     public bool Running { get; private set; } = true;
 
-    void OnEnable() => GameEvents.OnGameOver += Stop;
-    void OnDisable() => GameEvents.OnGameOver -= Stop;
+    void OnEnable()
+    {
+        GameEvents.OnGameOver += Stop;
+        GameEvents.OnPlayerRevived += ClearAndSpawnSafeRunway;
+    }
+
+    void OnDisable()
+    {
+        GameEvents.OnGameOver -= Stop;
+        GameEvents.OnPlayerRevived -= ClearAndSpawnSafeRunway;
+    }
 
     public void Stop() => Running = false;
     public void Resume() => Running = true;        // e.g. after revive
     public void ResetSpeed() => Speed = startSpeed;
+
+    public void ClearAndSpawnSafeRunway()
+    {
+        // 1. Thu hồi toàn bộ chunk đang có trên đường
+        for (int i = active.Count - 1; i >= 0; i--)
+        {
+            Release(active[i]);
+            active.RemoveAt(i);
+        }
+
+        // 2. Đặt lại tốc độ ban đầu
+        Speed = startSpeed;
+
+        // 3. Đặt chunk an toàn (startChunkPrefab)
+        if (startChunkPrefab != null)
+        {
+            Place(startChunkPrefab);
+        }
+
+        // 4. Sinh tiếp các chunk phía trước
+        int safety = 10;
+        while (CountAhead() < minChunksAhead && safety-- > 0)
+        {
+            if (!SpawnNext()) break;
+        }
+
+        Running = true;
+    }
 
     IEnumerator Start()
     {
