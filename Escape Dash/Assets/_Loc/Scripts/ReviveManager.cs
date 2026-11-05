@@ -27,6 +27,9 @@ public class ReviveManager : MonoBehaviour
     [Tooltip("Thời gian đếm ngược (giây)")]
     public float countdownDuration = 5f;
 
+    [Tooltip("Thời gian chờ tối đa (giây) cho animation Death chạy xong trước khi hiện bảng hồi sinh")]
+    public float deathAnimMaxWait = 3f;
+
     // ──────────────────────────────────────────────────────────
     // THAM CHIẾU UI — kéo vào từ Hierarchy trong Inspector
     // ──────────────────────────────────────────────────────────
@@ -101,6 +104,11 @@ public class ReviveManager : MonoBehaviour
         // Chờ 0.3s để animation ngã/va chạm bắt đầu mượt
         yield return new WaitForSeconds(0.3f);
 
+        // Chờ animation Death của nhân vật chạy xong rồi mới hiện bảng hồi sinh
+        var player = FindFirstObjectByType<PlayerController>();
+        if (player != null)
+            yield return player.WaitForDeathAnimation(deathAnimMaxWait);
+
         int totalCoins = GetTotalCoins();
         hasEnoughCoins = totalCoins >= reviveCost;
         currentTimer   = countdownDuration;
@@ -136,7 +144,7 @@ public class ReviveManager : MonoBehaviour
         currentTimer -= Time.unscaledDeltaTime;
         if (countdownText != null)
             countdownText.text =
-                $"Tự động bỏ qua sau: <color=#f59e0b><b>{Mathf.CeilToInt(currentTimer)}s</b></color>";
+                $"Auto skip in: <color=#f59e0b><b>{Mathf.CeilToInt(currentTimer)}s</b></color>";
 
         if (currentTimer <= 0f) { OnSkipClicked(); return; }
 
@@ -157,13 +165,13 @@ public class ReviveManager : MonoBehaviour
     private void UpdateUIContent(int totalCoins)
     {
         if (costText)
-            costText.text = $"Chi phí: <color=#fbbf24><b>{reviveCost} Coin</b></color>";
+            costText.text = $"Cost: <color=#fbbf24><b>{reviveCost} Coin</b></color>";
 
         if (balanceText)
         {
             balanceText.text = hasEnoughCoins
-                ? $"Bạn đang có: <color=#4ade80><b>{totalCoins} Coin</b></color> (Đủ điều kiện)"
-                : $"Bạn đang có: <color=#ef4444><b>{totalCoins} Coin</b></color> (Cần thêm {reviveCost - totalCoins} Coin)";
+                ? $"You have: <color=#4ade80><b>{totalCoins} Coin</b></color> (Enough)"
+                : $"You have: <color=#ef4444><b>{totalCoins} Coin</b></color> (Need {reviveCost - totalCoins} more)";
         }
 
         if (reviveButton != null)
@@ -171,8 +179,8 @@ public class ReviveManager : MonoBehaviour
             reviveButton.interactable = hasEnoughCoins;
             if (reviveButtonText != null)
                 reviveButtonText.text = hasEnoughCoins
-                    ? $"HỒI SINH (-{reviveCost} Coin) [Space]"
-                    : $"KHÔNG ĐỦ COIN (Cần {reviveCost})";
+                    ? $"REVIVE (-{reviveCost} Coin) [Space]"
+                    : $"NOT ENOUGH COINS (Need {reviveCost})";
         }
     }
 

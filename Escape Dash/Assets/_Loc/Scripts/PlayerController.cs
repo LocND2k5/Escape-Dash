@@ -291,6 +291,23 @@ public class PlayerController : MonoBehaviour
         if (playRun && isGrounded) Play("Run");
     }
 
+    // Chờ animation "Death" chạy xong (hoặc quá maxWait giây thì thôi, phòng khi thiếu state).
+    public System.Collections.IEnumerator WaitForDeathAnimation(float maxWait)
+    {
+        if (animator == null) yield break;
+
+        float t = 0f;
+        while (t < maxWait)
+        {
+            var info = animator.GetCurrentAnimatorStateInfo(0);
+            if (info.IsName("Death") && !animator.IsInTransition(0) && info.normalizedTime >= 1f)
+                yield break;
+
+            t += Time.unscaledDeltaTime;
+            yield return null;
+        }
+    }
+
     private void Play(string state)
     {
         if (animator != null) animator.CrossFade(state, fadeTime);
