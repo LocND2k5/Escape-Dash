@@ -17,6 +17,10 @@ public class DayNightCycle : MonoBehaviour
     [SerializeField] Gradient fogColor;
     [SerializeField] bool affectFog = true;
 
+    [Header("Độ sáng tối thiểu (tăng lên nếu ban đêm còn tối)")]
+    [Range(0f, 1f)] [SerializeField] float minAmbient = 0.45f;   // ánh sáng môi trường không tối hơn mức này
+    [Range(0f, 1f)] [SerializeField] float minFog = 0.15f;       // sương mù không tối hơn mức này
+
     float time;
 
     void Start()
@@ -40,9 +44,19 @@ public class DayNightCycle : MonoBehaviour
         sun.color = sunColor.Evaluate(time);
         sun.intensity = sunIntensity.Evaluate(time);
 
-        RenderSettings.ambientLight = ambientColor.Evaluate(time);
+        RenderSettings.ambientLight = Lift(ambientColor.Evaluate(time), minAmbient);
         if (affectFog && RenderSettings.fog)
-            RenderSettings.fogColor = fogColor.Evaluate(time);
+            RenderSettings.fogColor = Lift(fogColor.Evaluate(time), minFog);
+    }
+
+    // Nếu màu quá tối thì kéo sáng lên tới mức tối thiểu nhưng giữ nguyên sắc màu (đêm vẫn hơi xanh)
+    static Color Lift(Color c, float minBrightness)
+    {
+        float m = Mathf.Max(c.r, c.g, c.b);
+        if (m >= minBrightness) return c;
+        if (m < 0.001f) return new Color(minBrightness, minBrightness, minBrightness, c.a);
+        float k = minBrightness / m;
+        return new Color(c.r * k, c.g * k, c.b * k, c.a);
     }
 
     // Giá trị mặc định hợp lý, chỉ chạy khi thêm component hoặc bấm Reset. Chỉnh lại trong Inspector tùy ý.
@@ -51,7 +65,7 @@ public class DayNightCycle : MonoBehaviour
         sun = RenderSettings.sun != null ? RenderSettings.sun : FindFirstObjectByType<Light>();
 
         sunColor = Make(new Color(1f, 0.6f, 0.35f), Color.white, new Color(1f, 0.5f, 0.3f), new Color(0.15f, 0.2f, 0.4f));
-        ambientColor = Make(new Color(0.65f, 0.5f, 0.45f), new Color(0.7f, 0.75f, 0.85f), new Color(0.6f, 0.4f, 0.4f), new Color(0.15f, 0.18f, 0.3f));
+        ambientColor = Make(new Color(0.65f, 0.5f, 0.45f), new Color(0.7f, 0.75f, 0.85f), new Color(0.6f, 0.4f, 0.4f), new Color(0.3f, 0.36f, 0.6f));
         fogColor = Make(new Color(0.9f, 0.65f, 0.5f), new Color(0.7f, 0.8f, 0.95f), new Color(0.85f, 0.5f, 0.4f), new Color(0.05f, 0.07f, 0.15f));
 
         sunIntensity = new AnimationCurve(
