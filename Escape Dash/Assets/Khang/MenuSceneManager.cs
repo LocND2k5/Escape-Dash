@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using UnityEngine.UI;
 using TMPro;
 
 /// <summary>
@@ -26,6 +27,11 @@ public class MenuSceneManager : MonoBehaviour
     [Tooltip("Panel kết thúc ván chơi (Game Over)")]
     [SerializeField] private GameObject gameOverPanel;
 
+    [Header("Settings Audio Sliders")]
+    [SerializeField] private Slider masterVolumeSlider;
+    [SerializeField] private Slider bgmVolumeSlider;
+    [SerializeField] private Slider vfxVolumeSlider;
+
     [Header("Input Field")]
     [Tooltip("TMP_InputField nhập tên người chơi")]
     [SerializeField] private TMP_InputField nameInputField;
@@ -40,6 +46,8 @@ public class MenuSceneManager : MonoBehaviour
     {
         // Luôn trả tốc độ game về 1 khi vào Menu
         Time.timeScale = 1f;
+
+        InitAudioSliders();
 
         // Ẩn Popup nhập tên ban đầu
         if (namePopupPanel != null)
@@ -173,15 +181,83 @@ public class MenuSceneManager : MonoBehaviour
         if (namePopupPanel != null) namePopupPanel.SetActive(false);
     }
 
+    private void InitAudioSliders()
+    {
+        SetupSlider(
+            masterVolumeSlider,
+            AudioManager.Instance != null ? AudioManager.Instance.masterVolume : PlayerPrefs.GetFloat("MasterVolume", 1f),
+            SetMasterVolume);
+        SetupSlider(
+            bgmVolumeSlider,
+            AudioManager.Instance != null ? AudioManager.Instance.bgmVolume : PlayerPrefs.GetFloat("BGMVolume", 0.8f),
+            SetBGMVolume);
+        SetupSlider(
+            vfxVolumeSlider,
+            AudioManager.Instance != null ? AudioManager.Instance.vfxVolume : PlayerPrefs.GetFloat("VFXVolume", 1f),
+            SetVFXVolume);
+    }
+
+    private void SetupSlider(Slider slider, float value, UnityEngine.Events.UnityAction<float> callback)
+    {
+        if (slider == null)
+            return;
+
+        slider.minValue = 0f;
+        slider.maxValue = 1f;
+        slider.value = Mathf.Clamp01(value);
+        slider.onValueChanged.RemoveAllListeners();
+        slider.onValueChanged.AddListener(callback);
+    }
+
+    public void SetMasterVolume(float value)
+    {
+        if (AudioManager.Instance != null)
+            AudioManager.Instance.SetMasterVolume(value);
+        else
+        {
+            PlayerPrefs.SetFloat("MasterVolume", Mathf.Clamp01(value));
+            PlayerPrefs.Save();
+        }
+    }
+
+    public void SetBGMVolume(float value)
+    {
+        if (AudioManager.Instance != null)
+            AudioManager.Instance.SetBGMVolume(value);
+        else
+        {
+            PlayerPrefs.SetFloat("BGMVolume", Mathf.Clamp01(value));
+            PlayerPrefs.Save();
+        }
+    }
+
+    public void SetVFXVolume(float value)
+    {
+        if (AudioManager.Instance != null)
+            AudioManager.Instance.SetVFXVolume(value);
+        else
+        {
+            PlayerPrefs.SetFloat("VFXVolume", Mathf.Clamp01(value));
+            PlayerPrefs.Save();
+        }
+    }
+
     // ── Hàm phụ trợ tải Gameplay Scene ──
     private void LoadGameplayScene()
     {
         Time.timeScale = 1f;
-        if (Application.CanStreamedLevelBeLoaded("Loc"))
+
+        if (Application.CanStreamedLevelBeLoaded("Loc 1"))
+            SceneManager.LoadScene("Loc 1");
+        else if (Application.CanStreamedLevelBeLoaded("Loc"))
             SceneManager.LoadScene("Loc");
         else if (Application.CanStreamedLevelBeLoaded("Linh"))
             SceneManager.LoadScene("Linh");
         else
-            SceneManager.LoadScene(1);
+        {
+            Debug.LogError(
+                "MenuSceneManager: Gameplay scene is missing from Build Settings. " +
+                "Add Loc 1.unity or Linh.unity before building.");
+        }
     }
 }
