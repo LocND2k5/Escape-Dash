@@ -22,9 +22,8 @@ public class ScoreManage : MonoBehaviour
 
     public float Distance { get; private set; }
     public int Coins { get; private set; }
-    // MỚI: điểm quãng đường cộng dồn theo từng frame (để nhân đôi đúng đoạn có power-up)
-    private float distancePoints;
-    public int Score => Mathf.FloorToInt(distancePoints) + Coins * pointsPerCoin;
+    public int TotalCoins { get; private set; } // Tổng coin tích luỹ qua các ván
+    public int Score => Mathf.FloorToInt(Distance * pointsPerMeter) + Coins * pointsPerCoin;
     public int HighScore { get; private set; }
     public float BestDistance { get; private set; }
     public bool IsNewHighScore { get; private set; }
@@ -36,20 +35,16 @@ public class ScoreManage : MonoBehaviour
     private int shownCoins = -1;
     private int shownMeters = -1;
 
-    public const string HighScoreKey = "HighScore";
-    public const string BestDistanceKey = "BestDistance";
-    public const string LastScoreKey = "LastScore";
-    public const string LastDistanceKey = "LastDistance";
-    public const string LastCoinsKey = "LastCoins";
-    public const string NewHighScoreKey = "NewHighScore";
-
-    private int Multiplier => PowerUpManager.IsActive(PowerUpType.DoubleScore) ? doubleScoreMultiplier : 1;
+    private const string HighScoreKey = "HighScore";
+    private const string BestDistanceKey = "BestDistance";
+    private const string TotalCoinsKey = "TotalCoins";
 
     private void Awake()
     {
         Instance = this;
         HighScore = PlayerPrefs.GetInt(HighScoreKey, 0);
         BestDistance = PlayerPrefs.GetFloat(BestDistanceKey, 0f);
+        TotalCoins = PlayerPrefs.GetInt(TotalCoinsKey, 0);
 
         if (spawner == null)
             Debug.LogWarning("ScoreManage: chưa gán ChunkSpawner, quãng đường sẽ luôn bằng 0.", this);
@@ -59,12 +54,14 @@ public class ScoreManage : MonoBehaviour
     {
         GameEvents.OnCoinCollected += AddCoin;
         GameEvents.OnGameOver += StopAndSave;
+        GameEvents.OnPlayerRevived += Resume;
     }
 
     private void OnDisable()
     {
         GameEvents.OnCoinCollected -= AddCoin;
         GameEvents.OnGameOver -= StopAndSave;
+        GameEvents.OnPlayerRevived -= Resume;
     }
 
     private void Start() => ResetRun();
@@ -85,6 +82,21 @@ public class ScoreManage : MonoBehaviour
     {
         if (spawner != null) lastSpawnerDistance = spawner.Distance;
         running = true;
+        RefreshUI(true);
+    }
+
+    // Trừ coin khi hồi sinh
+    public bool TrySpendCoins(int amount)
+    {
+        if (TotalCoins >= amount)
+        {
+            TotalCoins -= amount;
+            PlayerPrefs.SetInt(TotalCoinsKey, TotalCoins);
+            PlayerPrefs.Save();
+            RefreshUI(true);
+            return true;
+        }
+        return false;
     }
 
     private void Update()
@@ -103,7 +115,9 @@ public class ScoreManage : MonoBehaviour
     private void AddCoin(int value)
     {
         if (!running) return;
-        Coins += value * Multiplier;
+        Coins += value;
+        TotalCoins += value; // Lưu vĩnh viễn vào ví
+        PlayerPrefs.SetInt(TotalCoinsKey, TotalCoins);
         RefreshUI();
     }
 
@@ -123,14 +137,15 @@ public class ScoreManage : MonoBehaviour
             BestDistance = Distance;
             PlayerPrefs.SetFloat(BestDistanceKey, BestDistance);
         }
-
-        PlayerPrefs.SetInt(LastScoreKey, Score);
-        PlayerPrefs.SetFloat(LastDistanceKey, Distance);
-        PlayerPrefs.SetInt(LastCoinsKey, Coins);
-        PlayerPrefs.SetInt(NewHighScoreKey, IsNewHighScore ? 1 : 0);
-
+        PlayerPrefs.SetInt(TotalCoinsKey, TotalCoins);
         PlayerPrefs.Save();
         RefreshUI(true);
+
+        // Tự động gửi điểm lên Bảng Xếp Hạng Trực Tuyến UGS
+        if (UGSLeaderboardManager.Instance != null && Score > 0)
+        {
+            _ = UGSLeaderboardManager.Instance.SubmitScoreAsync(Score);
+        }
     }
 
     private void RefreshUI(bool force = false)

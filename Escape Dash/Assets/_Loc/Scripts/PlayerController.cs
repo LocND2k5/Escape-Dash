@@ -114,12 +114,14 @@ public class PlayerController : MonoBehaviour
     {
         GameEvents.OnGameOver += OnGameOver;
         GameEvents.OnPlayerHit += HandleHit;
+        GameEvents.OnPlayerRevived += Revive;
     }
 
     private void OnDisable()
     {
         GameEvents.OnGameOver -= OnGameOver;
         GameEvents.OnPlayerHit -= HandleHit;
+        GameEvents.OnPlayerRevived -= Revive;
     }
 
     private void OnGameOver()
@@ -131,7 +133,20 @@ public class PlayerController : MonoBehaviour
     public void Revive()
     {
         isDead = false;
-        dangerTimer = invulnTimer = hitAnimTimer = 0f;
+        slowTimer = dangerTimer = invulnTimer = hitAnimTimer = 0f;
+        verticalVelocity = 0f;
+        currentLane = 1; // Về lại làn giữa an toàn
+        var pos = transform.position;
+        pos.x = 0f;
+        pos.y = groundY;
+        transform.position = pos;
+
+        if (col != null)
+        {
+            col.height = originalHeight;
+            col.center = originalCenter;
+        }
+        isSliding = false;
         Play("Run");
     }
 

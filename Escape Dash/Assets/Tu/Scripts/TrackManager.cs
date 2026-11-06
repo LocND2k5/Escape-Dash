@@ -40,6 +40,30 @@ public class TrackManager : MonoBehaviour
         }
     }
 
+    private void OnEnable()  => GameEvents.OnPlayerRevived += ClearAndSpawnSafeRunway;
+    private void OnDisable() => GameEvents.OnPlayerRevived -= ClearAndSpawnSafeRunway;
+
+    public void ClearAndSpawnSafeRunway()
+    {
+        for (int i = activeTracks.Count - 1; i >= 0; i--)
+        {
+            if (activeTracks[i] != null) Destroy(activeTracks[i]);
+        }
+        activeTracks.Clear();
+
+        if (trackPrefabs == null || trackPrefabs.Length == 0) return;
+
+        // Sinh 1 khúc trống sau lưng + 2 khúc trống trước mặt
+        float z = -trackLength;
+        SpawnTrack(0, z); z += trackLength;
+        SpawnTrack(0, z); z += trackLength;
+        while (z < numberOfTracks * trackLength)
+        {
+            SpawnTrack(Random.Range(0, trackPrefabs.Length), z);
+            z += trackLength;
+        }
+    }
+
     private void Update()
     {
         if (trackPrefabs == null || trackPrefabs.Length == 0) return;
