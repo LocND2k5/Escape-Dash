@@ -194,36 +194,24 @@ public class GameUIManager : MonoBehaviour
     // ==========================================
 
     /// <summary>
-    /// Mở khu vực / cửa sổ Cài Đặt (Settings):
-    /// Tắt màn hình Tạm Dừng (Pause Menu) và bật màn hình Cài Đặt.
+    /// Mở Settings phủ lên Pause Menu, giữ nguyên màn hình Tạm Dừng bên dưới.
     /// </summary>
     public void OpenSettings()
     {
-        if (pausePanel != null)
-        {
-            pausePanel.SetActive(false); // Ẩn màn Pause Menu đi
-        }
-
         if (settingsPanel != null)
         {
-            settingsPanel.SetActive(true); // Bật màn Cài Đặt lên
+            settingsPanel.SetActive(true);
         }
     }
 
     /// <summary>
-    /// Đóng khu vực Cài Đặt, quay lại Pause Menu:
-    /// Tắt màn hình Cài Đặt và bật lại màn hình Tạm Dừng.
+    /// Đóng Settings; Pause Menu vẫn đang hiển thị phía dưới.
     /// </summary>
     public void CloseSettings()
     {
         if (settingsPanel != null)
         {
-            settingsPanel.SetActive(false); // Ẩn màn Cài Đặt đi
-        }
-
-        if (pausePanel != null)
-        {
-            pausePanel.SetActive(true); // Hiện lại màn Pause Menu
+            settingsPanel.SetActive(false);
         }
     }
 
