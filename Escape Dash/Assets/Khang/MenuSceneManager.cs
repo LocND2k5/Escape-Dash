@@ -1,3 +1,4 @@
+using System.Collections;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
@@ -36,6 +37,12 @@ public class MenuSceneManager : MonoBehaviour
     [Tooltip("TMP_InputField nhập tên người chơi")]
     [SerializeField] private TMP_InputField nameInputField;
 
+    [Header("Game Over Score")]
+    [Tooltip("Số giây tối đa để chạy hiệu ứng đếm điểm.")]
+    [SerializeField] private float scoreCountDuration = 2f;
+    [Tooltip("TMP Text do bạn tạo trong GameOverPanel để hiển thị điểm.")]
+    [SerializeField] private TMP_Text gameOverScoreText;
+
     [Header("Coin Display")]
     [Tooltip("Gán TextMeshPro dùng để hiển thị tổng coin trong menu.")]
     [SerializeField] private TMP_Text coinBalanceText;
@@ -55,6 +62,8 @@ public class MenuSceneManager : MonoBehaviour
         if (coinBalanceText == null)
             Debug.LogWarning("MenuSceneManager: Assign the menu coin balance TMP text in the Inspector.", this);
         RefreshCoinBalanceDisplay();
+        if (gameOverScoreText != null)
+            gameOverScoreText.text = "";
 
         // Ẩn Popup nhập tên ban đầu
         if (namePopupPanel != null)
@@ -73,6 +82,7 @@ public class MenuSceneManager : MonoBehaviour
             // Hiển thị Game Over, ẩn Menu chính
             if (gameOverPanel != null) gameOverPanel.SetActive(true);
             if (mainMenuPanel != null) mainMenuPanel.SetActive(false);
+            ShowLastRunScore();
         }
         else
         {
@@ -196,6 +206,52 @@ public class MenuSceneManager : MonoBehaviour
 
         int totalCoins = PlayerPrefs.GetInt("TotalCoins", 0);
         coinBalanceText.text = totalCoins.ToString("N0");
+    }
+
+    private void ShowLastRunScore()
+    {
+        if (gameOverScoreText == null)
+        {
+            Debug.LogError("MenuSceneManager: Assign the Game Over score TMP text in the Inspector.", this);
+            return;
+        }
+
+        int lastScore = PlayerPrefs.GetInt(ScoreManage.LastScoreKey, 0);
+        bool isPersonalBest = PlayerPrefs.GetInt(ScoreManage.NewHighScoreKey, 0) == 1;
+        gameOverScoreText.textWrappingMode = TextWrappingModes.NoWrap;
+        gameOverScoreText.text = isPersonalBest ? "BEST SCORE: 0" : "SCORE: 0";
+        gameOverScoreText.color = isPersonalBest ? new Color(0.35f, 1f, 0.55f) : Color.white;
+        StartCoroutine(AnimateGameOverScore(lastScore, isPersonalBest));
+    }
+
+    private IEnumerator AnimateGameOverScore(int targetScore, bool isPersonalBest)
+    {
+        float duration = Mathf.Max(0.01f, scoreCountDuration);
+        float elapsed = 0f;
+        string title = isPersonalBest ? "BEST SCORE" : "SCORE";
+
+        while (elapsed < duration)
+        {
+            elapsed += Time.unscaledDeltaTime;
+            float progress = Mathf.Clamp01(elapsed / duration);
+            int displayedScore = Mathf.FloorToInt(targetScore * progress);
+            gameOverScoreText.text = $"{title}: {displayedScore:N0}";
+
+            if (isPersonalBest)
+            {
+                float blink = (Mathf.Sin(Time.unscaledTime * 8f) + 1f) * 0.5f;
+                gameOverScoreText.color = Color.Lerp(
+                    new Color(0.15f, 0.65f, 0.28f),
+                    new Color(0.5f, 1f, 0.65f),
+                    blink);
+            }
+
+            yield return null;
+        }
+
+        gameOverScoreText.text = $"{title}: {targetScore:N0}";
+        if (!isPersonalBest)
+            gameOverScoreText.color = Color.white;
     }
 
     private void InitAudioSliders()
