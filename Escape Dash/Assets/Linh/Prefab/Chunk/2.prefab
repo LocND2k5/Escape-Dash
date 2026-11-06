@@ -63,17 +63,20 @@ MonoBehaviour:
   - prefab: {fileID: 8174892905851319103, guid: 2c9068bcee6353a468b75a80d9d93116, type: 3}
     weight: 1
     poolSize: 2
+    rowsOccupied: 1
   - prefab: {fileID: 3628689892282755982, guid: a085620f8e1e0cd4fb0237f6ca15f8de, type: 3}
-    weight: 3
-    poolSize: 4
+    weight: 1
+    poolSize: 2
+    rowsOccupied: 1
   - prefab: {fileID: 723494279191914964, guid: 6da5f9c1cd9125a4da82d7211b06c79f, type: 3}
-    weight: 0
-    poolSize: 0
+    weight: 1
+    poolSize: 2
+    rowsOccupied: 1
   coinPrefab: {fileID: 1665233005385052418, guid: 4b295582ae9f54b4fa4df35a9313eeb7, type: 3}
   coinPoolSize: 24
   laneDistance: 2
   firstRowZ: 3
-  rowSpacing: 7
+  rowSpacing: 10
   endMargin: 2
   emptyRowChance: 0.3
   obstacleChance: 0.5

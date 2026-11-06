@@ -36,6 +36,11 @@ public class PlayerController : MonoBehaviour
     public float superJumpMultiplier = 1.8f;   // nhảy cao gấp bao nhiêu lần khi có Super Jump
     private float JumpMultiplier => PowerUpManager.IsActive(PowerUpType.SuperJump) ? superJumpMultiplier : 1f;
 
+    [Header("Mặt đỡ (nóc tàu, dốc)")]
+    [SerializeField] private LayerMask walkableMask;   // chọn layer "Walkable"
+    [SerializeField] private float stepUp = 0.5f;      // MỚI: mặt đỡ cao hơn chân tối đa bao nhiêu thì tự bước lên
+    [SerializeField] private float stepDown = 0.3f;    // MỚI: mặt đỡ thấp hơn chân tối đa bao nhiêu thì vẫn bám, hơn thì rơi
+
     [Header("Hit Penalty (vấp Obstacle)")]
     public float hitSlowFactor = 0.4f;     // tốc độ còn bao nhiêu % ngay khi vấp (0.4 = 40%)
     public float slowDuration = 2f;        // thời gian tốc độ hồi phục về bình thường
@@ -62,6 +67,7 @@ public class PlayerController : MonoBehaviour
     }
 
     private int currentLane = 1;
+    private int previousLane = 1;   // MỚI: làn trước khi đổi, để bị đẩy về khi va vào hông vật cản
     private float verticalVelocity;
     private bool isGrounded = true;
     private bool isSliding;
@@ -136,6 +142,7 @@ public class PlayerController : MonoBehaviour
         slowTimer = dangerTimer = invulnTimer = hitAnimTimer = 0f;
         verticalVelocity = 0f;
         currentLane = 1; // Về lại làn giữa an toàn
+        previousLane = 1;
         var pos = transform.position;
         pos.x = 0f;
         pos.y = groundY;
@@ -148,6 +155,13 @@ public class PlayerController : MonoBehaviour
         }
         isSliding = false;
         Play("Run");
+    }
+
+    // MỚI: va vào hông vật cản khi đang đổi làn -> bị đẩy về làn cũ (không xuyên qua). Gọi bởi SideBump.
+    public void BumpBack()
+    {
+        if (isDead) return;
+        currentLane = previousLane;
     }
 
     private void HandleHit()
@@ -200,16 +214,36 @@ public class PlayerController : MonoBehaviour
 
     private void HandleInput()
     {
+        int laneBefore = currentLane;   // MỚI
         if (Input.GetKeyDown(KeyCode.LeftArrow) || Input.GetKeyDown(KeyCode.A))
             currentLane = Mathf.Max(0, currentLane - 1);
         else if (Input.GetKeyDown(KeyCode.RightArrow) || Input.GetKeyDown(KeyCode.D))
             currentLane = Mathf.Min(2, currentLane + 1);
+        if (currentLane != laneBefore) previousLane = laneBefore;   // MỚI
 
         if (isGrounded && (Input.GetKeyDown(KeyCode.UpArrow) || Input.GetKeyDown(KeyCode.W) || Input.GetKeyDown(KeyCode.Space)))
             Jump();
 
         if (!isSliding && (Input.GetKeyDown(KeyCode.DownArrow) || Input.GetKeyDown(KeyCode.S)))
             StartSlide();
+    }
+
+
+    // MỚI: độ cao mặt đỡ ngay dưới chân (nóc container...), không có thì là mặt đường gốc.
+    private float GetGroundHeight(Vector3 pos)
+    {
+        if (walkableMask.value == 0) return groundY;
+
+        // Map chạy bằng cách dời transform mỗi frame, nên đồng bộ vật lý trước khi bắn tia
+        Physics.SyncTransforms();
+
+        float above = stepUp + 0.1f;   // tia bắt đầu cao hơn chân một chút
+        Vector3 origin = pos + Vector3.up * above;
+        if (Physics.Raycast(origin, Vector3.down, out RaycastHit hit, above + 60f,
+                            walkableMask, QueryTriggerInteraction.Ignore))
+            return Mathf.Max(groundY, hit.point.y);
+
+        return groundY;
     }
 
     private void Move()
@@ -223,8 +257,21 @@ public class PlayerController : MonoBehaviour
         float targetX = (currentLane - 1) * laneDistance;
         pos.x = Mathf.MoveTowards(pos.x, targetX, laneChangeSpeed * dt);
 
+        // MỚI: độ cao mặt đỡ dưới chân
+        float ground = GetGroundHeight(pos);
+
+        if (isGrounded)
+        {
+            float diff = ground - pos.y;
+            if (diff >= -stepDown && diff <= stepUp)
+                pos.y = ground;              // bám theo mặt đỡ (đứng trên nóc container)
+            else if (diff < -stepDown)
+                StartFalling();              // hết nóc / sang làn khác -> rơi xuống
+        }
+
         if (!isGrounded)
         {
+            float oldY = pos.y;
             airTime += dt;
             verticalVelocity += gravity * dt;
             pos.y += verticalVelocity * dt;
@@ -235,9 +282,10 @@ public class PlayerController : MonoBehaviour
                 Play("JumpLoop");
             }
 
-            if (pos.y <= groundY)
+            // MỚI: đáp xuống mặt đỡ (chỉ khi đang đi xuống và trước đó không thấp hơn mặt đỡ quá stepUp)
+            if (verticalVelocity <= 0f && pos.y <= ground && ground - oldY <= stepUp)
             {
-                pos.y = groundY;
+                pos.y = ground;
                 verticalVelocity = 0f;
                 isGrounded = true;
                 airTime = 0f;
@@ -247,6 +295,16 @@ public class PlayerController : MonoBehaviour
         }
 
         transform.position = pos;
+    }
+
+    // MỚI: bắt đầu rơi (hết mặt đỡ)
+    private void StartFalling()
+    {
+        isGrounded = false;
+        verticalVelocity = 0f;
+        airTime = 0f;
+        jumpLoopStarted = false;
+        hitAnimTimer = 0f;
     }
 
     private void Jump()

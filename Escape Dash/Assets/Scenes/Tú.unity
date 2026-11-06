@@ -2811,11 +2811,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f0695658cc27dec4b9dd8da1c18d6e37, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::GameOverLoader
-  playerAnimator: {fileID: 0}
-  deathStateName: Death
-  maxWait: 3
-  extraDelay: 0.3
-  fallbackDelay: 1.5
 --- !u!4 &1728271919
 Transform:
   m_ObjectHideFlags: 0
@@ -3048,6 +3043,8 @@ MonoBehaviour:
     m_Bits: 8
   stepUp: 0.5
   stepDown: 0.3
+  hitSlowFactor: 0.4
+  slowDuration: 2
   dangerDuration: 4
   invulnerableTime: 0.8
   hitAnimDuration: 0.6
@@ -3302,7 +3299,7 @@ MonoBehaviour:
   copiesPerChunk: 1
   startSpeed: 3
   maxSpeed: 6
-  acceleration: 0.01
+  acceleration: 0.5
   minChunksAhead: 3
   playerZ: -5
   despawnBehind: 5
