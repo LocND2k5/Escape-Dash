@@ -115,7 +115,7 @@ MonoBehaviour:
   coinSpacing: 1.5
   powerUps:
   - prefab: {fileID: 1109186393732237769, guid: 4d124cd6843b5e442b62d2fc4977bc47, type: 3}
-    weight: 3
+    weight: 2
   - prefab: {fileID: 6352073583811665546, guid: 67b285d7d57708948982c0b396b77369, type: 3}
     weight: 2
   - prefab: {fileID: 9192796388003653334, guid: 4f56ef5c4dd748742b28e379033b42c7, type: 3}
