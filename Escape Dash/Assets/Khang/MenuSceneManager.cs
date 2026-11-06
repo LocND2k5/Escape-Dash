@@ -36,6 +36,10 @@ public class MenuSceneManager : MonoBehaviour
     [Tooltip("TMP_InputField nhập tên người chơi")]
     [SerializeField] private TMP_InputField nameInputField;
 
+    [Header("Coin Display")]
+    [Tooltip("Gán TextMeshPro dùng để hiển thị tổng coin trong menu.")]
+    [SerializeField] private TMP_Text coinBalanceText;
+
     private void Awake()
     {
         if (Instance == null) Instance = this;
@@ -48,6 +52,9 @@ public class MenuSceneManager : MonoBehaviour
         Time.timeScale = 1f;
 
         InitAudioSliders();
+        if (coinBalanceText == null)
+            Debug.LogWarning("MenuSceneManager: Assign the menu coin balance TMP text in the Inspector.", this);
+        RefreshCoinBalanceDisplay();
 
         // Ẩn Popup nhập tên ban đầu
         if (namePopupPanel != null)
@@ -179,6 +186,16 @@ public class MenuSceneManager : MonoBehaviour
         if (gameOverPanel != null) gameOverPanel.SetActive(false);
         if (mainMenuPanel != null) mainMenuPanel.SetActive(true);
         if (namePopupPanel != null) namePopupPanel.SetActive(false);
+        RefreshCoinBalanceDisplay();
+    }
+
+    private void RefreshCoinBalanceDisplay()
+    {
+        if (coinBalanceText == null)
+            return;
+
+        int totalCoins = PlayerPrefs.GetInt("TotalCoins", 0);
+        coinBalanceText.text = totalCoins.ToString("N0");
     }
 
     private void InitAudioSliders()
