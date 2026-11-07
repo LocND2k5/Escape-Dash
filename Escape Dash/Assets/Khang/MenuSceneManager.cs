@@ -114,7 +114,7 @@ public class MenuSceneManager : MonoBehaviour
         if (UGSLeaderboardManager.Instance != null)
             _ = UGSLeaderboardManager.Instance.UpdatePlayerNameAsync(enteredName);
 
-        // Vào gameplay scene (ưu tiên tìm scene "Loc", rồi "Linh", hoặc scene kế tiếp)
+        // Vào gameplay scene 
         LoadGameplayScene();
     }
 
@@ -247,17 +247,13 @@ public class MenuSceneManager : MonoBehaviour
     {
         Time.timeScale = 1f;
 
-        if (Application.CanStreamedLevelBeLoaded("Loc 1"))
-            SceneManager.LoadScene("Loc 1");
-        else if (Application.CanStreamedLevelBeLoaded("Loc"))
-            SceneManager.LoadScene("Loc");
-        else if (Application.CanStreamedLevelBeLoaded("Linh"))
-            SceneManager.LoadScene("Linh");
+        if (Application.CanStreamedLevelBeLoaded("GamePlay"))
+            SceneManager.LoadScene("GamePlay");
         else
         {
             Debug.LogError(
                 "MenuSceneManager: Gameplay scene is missing from Build Settings. " +
-                "Add Loc 1.unity or Linh.unity before building.");
+                "Add GamePlay.unity before building.");
         }
     }
 }

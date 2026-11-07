@@ -24,7 +24,11 @@ public class ChunkSpawner : MonoBehaviour
     int lastIndex = -1;
     bool ready;   // true once all chunks are created
 
-    public float Speed { get; private set; }      // current speed (m/s)
+    public float Speed { get; private set; }      // base speed (m/s), ramps up over time
+    // Actual scroll speed: base speed x stumble slowdown from the player (1 when not stumbling)
+    public float CurrentSpeed => Speed * (player != null ? player.SlowMultiplier : 1f);
+
+    PlayerController player;
     public float Distance { get; private set; }   // meters travelled since the run started
     public bool Running { get; private set; } = true;
 
@@ -105,7 +109,8 @@ public class ChunkSpawner : MonoBehaviour
 
         // 0. Speed up gradually, and count the distance travelled
         Speed = Mathf.MoveTowards(Speed, maxSpeed, acceleration * Time.deltaTime);
-        float dz = Speed * Time.deltaTime;
+        if (player == null) player = FindFirstObjectByType<PlayerController>();
+        float dz = CurrentSpeed * Time.deltaTime;
         Distance += dz;
 
         // 1. Move all chunks toward the player

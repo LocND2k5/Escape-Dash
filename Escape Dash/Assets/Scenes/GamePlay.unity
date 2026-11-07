@@ -7963,7 +7963,7 @@ MonoBehaviour:
   gravity: -22
   slideDuration: 1.1
   slideHeightRatio: 0.5
-  superJumpMultiplier: 1.8
+  superJumpMultiplier: 1
   hitSlowFactor: 0.4
   slowDuration: 2
   dangerDuration: 4

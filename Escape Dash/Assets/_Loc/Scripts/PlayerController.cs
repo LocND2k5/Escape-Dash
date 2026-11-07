@@ -43,6 +43,11 @@ public class PlayerController : MonoBehaviour
     public float invulnerableTime = 0.8f;  // miễn nhiễm ngắn sau khi vấp (tránh bị tính 2 lần)
     public float hitAnimDuration = 0.6f;   // thời gian phát animation Hit
 
+    [Header("Revive Glow (vòng sáng sau khi hồi sinh)")]
+    public float reviveGlowDuration = 3f;                          // 0 = tắt vòng sáng
+    public float reviveGlowDiameter = 2.6f;
+    public Color reviveGlowColor = new Color(1f, 0.78f, 0.15f, 1f); // vàng cam sáng (kiểu Temple Run)
+
     [Header("Animation")]
     [SerializeField] private Animator animator;
     [SerializeField] private float fadeTime = 0.1f;
@@ -54,10 +59,17 @@ public class PlayerController : MonoBehaviour
         get
         {
             if (isDead) return 0f;
-            float multiplier = 1f;
-            if (slowTimer > 0f)
-                multiplier = Mathf.Lerp(1f, hitSlowFactor, slowTimer / slowDuration);
-            return forwardSpeed * multiplier;
+            return forwardSpeed * SlowMultiplier;
+        }
+    }
+
+    // Hệ số giảm tốc khi vấp: 1 = bình thường; vừa vấp = hitSlowFactor (0.4), hồi dần về 1 trong slowDuration giây
+    public float SlowMultiplier
+    {
+        get
+        {
+            if (slowTimer <= 0f) return 1f;
+            return Mathf.Lerp(1f, hitSlowFactor, slowTimer / slowDuration);
         }
     }
 
@@ -134,6 +146,10 @@ public class PlayerController : MonoBehaviour
     {
         isDead = false;
         slowTimer = dangerTimer = invulnTimer = hitAnimTimer = 0f;
+        slowTimer = slowDuration; // Hồi sinh xong cũng bị giảm tốc như khi vấp (còn 40%, hồi dần)
+        ReviveGlow.Show(transform,
+                        col != null ? col.center : new Vector3(0f, 0.9f, 0f),
+                        reviveGlowDiameter, reviveGlowDuration, reviveGlowColor);
         verticalVelocity = 0f;
         currentLane = 1; // Về lại làn giữa an toàn
         var pos = transform.position;
