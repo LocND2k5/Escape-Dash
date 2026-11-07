@@ -23,6 +23,7 @@ public class AudioManager : MonoBehaviour
     public AudioClip jumpSound;
     public AudioClip slideSound;
     public AudioClip coinSound;
+    public AudioClip powerUpPickupSound;
     public AudioClip hitSound;       // Khi vấp phải vật cản lần 1
     public AudioClip gameOverSound;  // Khi Game Over
 
@@ -97,6 +98,7 @@ public class AudioManager : MonoBehaviour
         GameEvents.OnCoinCollected += PlayCoinSFX;
         GameEvents.OnPlayerHit     += PlayHitSFX;
         GameEvents.OnGameOver      += PlayGameOverSFX;
+        PowerUpManager.OnChanged   += PlayPowerUpPickupSFX;
     }
 
     private void OnDisable()
@@ -104,6 +106,7 @@ public class AudioManager : MonoBehaviour
         GameEvents.OnCoinCollected -= PlayCoinSFX;
         GameEvents.OnPlayerHit     -= PlayHitSFX;
         GameEvents.OnGameOver      -= PlayGameOverSFX;
+        PowerUpManager.OnChanged   -= PlayPowerUpPickupSFX;
     }
 
     // ──────────────────────────────────────────────
@@ -182,6 +185,12 @@ public class AudioManager : MonoBehaviour
         if (clip == null || sfxSource == null) return;
         float finalVolume = masterVolume * vfxVolume * volumeScale;
         sfxSource.PlayOneShot(clip, finalVolume);
+    }
+
+    private void PlayPowerUpPickupSFX(PowerUpType type, bool isActive)
+    {
+        if (isActive)
+            PlaySFX(powerUpPickupSound);
     }
 
     private void PlayCoinSFX(int coinValue)

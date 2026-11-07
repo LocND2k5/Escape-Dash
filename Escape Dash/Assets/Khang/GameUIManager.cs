@@ -1,16 +1,13 @@
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.SceneManagement;
-using TMPro;
 
 /// <summary>
 /// Quản lý toàn bộ UI trong Gameplay Scene (Linh / Loc):
-/// - HUD hiển thị Điểm (Score), Xu (Coin), Quãng đường (Distance)
 /// - Pause Menu bật/tắt bằng phím ESC (không bắt buộc click chuột)
 ///   Bao gồm 3 thành phần chính: Tiếp tục (Resume), Chơi lại (Restart), Về Menu (Home)
 ///   Và một khu vực Cài đặt (Settings)
 /// - Settings Panel điều chỉnh: Master Volume, BGM Volume, VFX Volume
-/// - Game Over: ReviveManager hỏi Hồi sinh trước; bấm Bỏ qua → chuyển về Game Over ở MenuScence.
 /// Nằm trong thư mục Assets/Khang/.
 /// </summary>
 public class GameUIManager : MonoBehaviour
@@ -27,11 +24,6 @@ public class GameUIManager : MonoBehaviour
     [Tooltip("Panel Cài Đặt (Settings) chứa điều chỉnh âm thanh")]
     [SerializeField] private GameObject settingsPanel;
 
-    [Header("HUD Text Elements (Tự động cập nhật nếu kéo vào)")]
-    [SerializeField] private TextMeshProUGUI scoreText;
-    [SerializeField] private TextMeshProUGUI coinText;
-    [SerializeField] private TextMeshProUGUI distanceText;
-
     [Header("Audio Settings Sliders (Trong Settings Panel)")]
     [Tooltip("Thanh trượt Master Volume (0.0 đến 1.0)")]
     [SerializeField] private Slider masterVolumeSlider;
@@ -42,35 +34,16 @@ public class GameUIManager : MonoBehaviour
     [Tooltip("Thanh trượt VFX Volume (0.0 đến 1.0)")]
     [SerializeField] private Slider vfxVolumeSlider;
 
-    [Header("Game Over & Revive Bridge")]
-    [Tooltip("Kéo nút màu xanh (Restart Button) trong GameOverPanel của ReviveManager vào đây")]
-    [SerializeField] private Button reviveRestartButton;
-
     [Header("Controls")]
     [Tooltip("Phím tắt tạm dừng / tiếp tục game (Mặc định: ESC)")]
     [SerializeField] private KeyCode pauseKey = KeyCode.Escape;
 
     private bool isPaused = false;
-    private bool isPlayerDead = false; // Đang chờ Hồi sinh / Bỏ qua → khóa phím ESC Pause
 
     private void Awake()
     {
         if (Instance == null) Instance = this;
         else if (Instance != this) { Destroy(gameObject); return; }
-    }
-
-    // Không chuyển scene ngay khi Game Over nữa: ReviveManager hiện RevivePanel trước,
-    // chỉ khi bấm Bỏ qua (hoặc hết giờ) mới chuyển sang Game Over ở MenuScence.
-    private void OnEnable()
-    {
-        GameEvents.OnGameOver      += HandleGameOverEvent;
-        GameEvents.OnPlayerRevived += HandlePlayerRevived;
-    }
-
-    private void OnDisable()
-    {
-        GameEvents.OnGameOver      -= HandleGameOverEvent;
-        GameEvents.OnPlayerRevived -= HandlePlayerRevived;
     }
 
     private void Start()
@@ -85,37 +58,14 @@ public class GameUIManager : MonoBehaviour
 
         // Khởi tạo các thanh trượt âm lượng
         InitAudioSliders();
-
-        // Thiết lập đè hành vi cho nút xanh của ReviveManager (nếu có gán)
-        if (reviveRestartButton != null)
-        {
-            reviveRestartButton.onClick.RemoveAllListeners();
-            reviveRestartButton.onClick.AddListener(TriggerGameOverScreen);
-        }
     }
 
     private void Update()
     {
         // Nhấn phím ESC để bật / tắt PauseMenu mà không cần click chuột
-        if (!isPlayerDead && Input.GetKeyDown(pauseKey))
+        if (Input.GetKeyDown(pauseKey))
         {
             TogglePauseWithEsc();
-        }
-
-        // Tự động cập nhật số liệu lên HUD nếu có ScoreManage trong scene
-        UpdateHUDInfo();
-    }
-
-    private void UpdateHUDInfo()
-    {
-        if (ScoreManage.Instance != null)
-        {
-            if (scoreText != null) 
-                scoreText.text = ScoreManage.Instance.Score.ToString();
-            if (coinText != null) 
-                coinText.text = ScoreManage.Instance.Coins.ToString();
-            if (distanceText != null) 
-                distanceText.text = Mathf.FloorToInt(ScoreManage.Instance.Distance) + " m";
         }
     }
 
@@ -194,36 +144,24 @@ public class GameUIManager : MonoBehaviour
     // ==========================================
 
     /// <summary>
-    /// Mở khu vực / cửa sổ Cài Đặt (Settings):
-    /// Tắt màn hình Tạm Dừng (Pause Menu) và bật màn hình Cài Đặt.
+    /// Mở Settings phủ lên Pause Menu, giữ nguyên màn hình Tạm Dừng bên dưới.
     /// </summary>
     public void OpenSettings()
     {
-        if (pausePanel != null)
-        {
-            pausePanel.SetActive(false); // Ẩn màn Pause Menu đi
-        }
-
         if (settingsPanel != null)
         {
-            settingsPanel.SetActive(true); // Bật màn Cài Đặt lên
+            settingsPanel.SetActive(true);
         }
     }
 
     /// <summary>
-    /// Đóng khu vực Cài Đặt, quay lại Pause Menu:
-    /// Tắt màn hình Cài Đặt và bật lại màn hình Tạm Dừng.
+    /// Đóng Settings; Pause Menu vẫn đang hiển thị phía dưới.
     /// </summary>
     public void CloseSettings()
     {
         if (settingsPanel != null)
         {
-            settingsPanel.SetActive(false); // Ẩn màn Cài Đặt đi
-        }
-
-        if (pausePanel != null)
-        {
-            pausePanel.SetActive(true); // Hiện lại màn Pause Menu
+            settingsPanel.SetActive(false);
         }
     }
 
@@ -307,36 +245,5 @@ public class GameUIManager : MonoBehaviour
             PlayerPrefs.SetFloat("VFXVolume", value);
             PlayerPrefs.Save();
         }
-    }
-
-    // ==========================================
-    // XỬ LÝ CHUYỂN TIẾP GAME OVER VỀ MENUSCENCE
-    // ==========================================
-
-    private void HandleGameOverEvent()
-    {
-        isPlayerDead = true;
-        if (isPaused) ResumeGame();
-
-        // Không có ReviveManager trong scene → chuyển thẳng sang Game Over như cũ
-        if (ReviveManager.Instance == null)
-            TriggerGameOverScreen();
-    }
-
-    private void HandlePlayerRevived()
-    {
-        isPlayerDead = false;
-    }
-
-    /// <summary>
-    /// Lưu cờ báo Game Over và load về MenuScence để hiện Game Over Panel
-    /// </summary>
-    public void TriggerGameOverScreen()
-    {
-        PlayerPrefs.SetInt(MenuSceneManager.GameOverKey, 1);
-        PlayerPrefs.Save();
-
-        Time.timeScale = 1f;
-        SceneManager.LoadScene(0);
     }
 }
