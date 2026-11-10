@@ -322,6 +322,7 @@ public class MenuSceneManager : MonoBehaviour
 
         if (Application.CanStreamedLevelBeLoaded("GamePlay"))
             SceneManager.LoadScene("GamePlay");
+        else
         {
             Debug.LogError(
                 "MenuSceneManager: Gameplay scene is missing from Build Settings. " +

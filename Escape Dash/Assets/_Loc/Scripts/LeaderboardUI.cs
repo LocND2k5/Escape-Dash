@@ -178,65 +178,119 @@ public class LeaderboardUI : MonoBehaviour
         }
     }
 
+    // Danh sách thật tải được gần nhất: mở lại bảng là có dữ liệu ngay, trong lúc tải bản mới.
+    private static List<LeaderboardEntry> _cachedEntries;
+    private bool _isRefreshing;
+
     /// <summary>
-    /// Kéo dữ liệu từ server về và vẽ lại danh sách
+    /// Kéo dữ liệu từ server về và vẽ lại danh sách.
+    /// Không xóa dữ liệu đang hiển thị trước khi tải: giữ dòng cũ (làm mờ) và hiện "đang tải",
+    /// chỉ thay khi dữ liệu thật về.
     /// </summary>
     public async void RefreshLeaderboard()
     {
-        // 1. Hiển thị danh sách mẫu 8 người chơi chuẩn như ảnh tham chiếu NGAY LẬP TỨC
-        RenderDefaultScores();
+        if (_isRefreshing) return;
+        _isRefreshing = true;
+        if (refreshButton != null) refreshButton.interactable = false;
 
-        // Tắt chữ "Đang tải dữ liệu..." để người chơi thấy ngay bảng kết quả đẹp mắt
-        if (loadingIndicator != null) loadingIndicator.SetActive(false);
+        // Lần đầu mở bảng nhưng đã từng tải được: hiện ngay danh sách đã lưu
+        bool hasRows = contentContainer != null && contentContainer.childCount > 0;
+        if (!hasRows && _cachedEntries != null && _cachedEntries.Count > 0)
+        {
+            RenderEntries(_cachedEntries);
+            hasRows = true;
+        }
+
         if (emptyOrErrorText != null) emptyOrErrorText.gameObject.SetActive(false);
+        SetLoadingVisual(true, hasRows);
 
-        // 2. Thử lấy dữ liệu thực tế từ UGS Cloud trong nền (có timeout 2 giây để không bao giờ bị đơ)
-        if (UGSLeaderboardManager.Instance == null) return;
-
+        // Lấy dữ liệu thực tế từ UGS Cloud (timeout 2 giây để không bao giờ bị đơ)
         List<LeaderboardEntry> topEntries = null;
-        try
+        if (UGSLeaderboardManager.Instance != null)
         {
-            var fetchTask = UGSLeaderboardManager.Instance.GetTopScoresAsync(topCount);
-            var timeoutTask = System.Threading.Tasks.Task.Delay(2000);
-            var finished = await System.Threading.Tasks.Task.WhenAny(fetchTask, timeoutTask);
-            if (finished == fetchTask)
+            try
             {
-                topEntries = await fetchTask;
-            }
-        }
-        catch (System.Exception ex)
-        {
-            Debug.LogWarning($"[LeaderboardUI] UGS fetch warning: {ex.Message}");
-        }
-
-        // Nếu UGS có dữ liệu thực tế -> cập nhật đè lên danh sách
-        if (topEntries != null && topEntries.Count > 0 && contentContainer != null && rowPrefab != null)
-        {
-            foreach (Transform child in contentContainer)
-            {
-                Destroy(child.gameObject);
-            }
-
-            string myPlayerId = UGSLeaderboardManager.Instance.PlayerId;
-            for (int i = 0; i < topEntries.Count; i++)
-            {
-                var entry = topEntries[i];
-                GameObject rowObj = Instantiate(rowPrefab, contentContainer);
-
-                bool isMe = !string.IsNullOrEmpty(myPlayerId) && entry.PlayerId == myPlayerId;
-                int rank = entry.Rank + 1;
-                int score = (int)entry.Score;
-                string displayName = !string.IsNullOrWhiteSpace(entry.PlayerName) ? entry.PlayerName : $"PLAYER";
-
-                var rowUI = rowObj.GetComponent<LeaderboardRowUI>();
-                if (rowUI != null)
+                var fetchTask = UGSLeaderboardManager.Instance.GetTopScoresAsync(topCount);
+                var timeoutTask = System.Threading.Tasks.Task.Delay(2000);
+                var finished = await System.Threading.Tasks.Task.WhenAny(fetchTask, timeoutTask);
+                if (finished == fetchTask)
                 {
-                    rowUI.Setup(rank, displayName, score, isMe);
+                    topEntries = await fetchTask;
                 }
             }
+            catch (System.Exception ex)
+            {
+                Debug.LogWarning($"[LeaderboardUI] UGS fetch warning: {ex.Message}");
+            }
+        }
+
+        SetLoadingVisual(false, hasRows);
+
+        if (topEntries != null && topEntries.Count > 0)
+        {
+            _cachedEntries = topEntries;
+            RenderEntries(topEntries);
+        }
+        else if (!hasRows)
+        {
+            // Chưa từng có dữ liệu thật và không tải được: báo lỗi, hoặc dùng danh sách mẫu nếu chưa có ô báo lỗi
+            if (emptyOrErrorText != null)
+            {
+                emptyOrErrorText.text = "Không tải được bảng xếp hạng. Kiểm tra kết nối rồi thử lại.";
+                emptyOrErrorText.gameObject.SetActive(true);
+            }
+            else
+            {
+                RenderDefaultScores();
+            }
+        }
+        // Còn lại: tải lỗi nhưng đang có dữ liệu thật cũ -> giữ nguyên
+
+        if (refreshButton != null) refreshButton.interactable = true;
+        _isRefreshing = false;
+    }
+
+    // Hiện "đang tải": bật loadingIndicator (nếu có) và làm mờ các dòng đang hiển thị
+    private void SetLoadingVisual(bool loading, bool hasRows)
+    {
+        if (loadingIndicator != null) loadingIndicator.SetActive(loading);
+
+        if (contentContainer != null)
+        {
+            var group = contentContainer.GetComponent<CanvasGroup>();
+            if (group == null && loading && hasRows) group = contentContainer.gameObject.AddComponent<CanvasGroup>();
+            if (group != null) group.alpha = (loading && hasRows) ? 0.5f : 1f;
         }
     }
 
+    // Vẽ lại danh sách từ dữ liệu thật
+    private void RenderEntries(List<LeaderboardEntry> entries)
+    {
+        if (contentContainer == null || rowPrefab == null || UGSLeaderboardManager.Instance == null) return;
+
+        foreach (Transform child in contentContainer)
+        {
+            Destroy(child.gameObject);
+        }
+
+        string myPlayerId = UGSLeaderboardManager.Instance.PlayerId;
+        for (int i = 0; i < entries.Count; i++)
+        {
+            var entry = entries[i];
+            GameObject rowObj = Instantiate(rowPrefab, contentContainer);
+
+            bool isMe = !string.IsNullOrEmpty(myPlayerId) && entry.PlayerId == myPlayerId;
+            int rank = entry.Rank + 1;
+            int score = (int)entry.Score;
+            string displayName = !string.IsNullOrWhiteSpace(entry.PlayerName) ? entry.PlayerName : "PLAYER";
+
+            var rowUI = rowObj.GetComponent<LeaderboardRowUI>();
+            if (rowUI != null)
+            {
+                rowUI.Setup(rank, displayName, score, isMe);
+            }
+        }
+    }
     private void RenderDefaultScores()
     {
         if (contentContainer == null || rowPrefab == null) return;
