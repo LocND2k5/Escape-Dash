@@ -42,13 +42,19 @@ public class ChaserController : MonoBehaviour
     { 
         GameEvents.OnGameOver += OnCaught; 
         GameEvents.OnPlayerRevived += ResetChaser;
+        GameEvents.OnPlayerStumbled += OnPlayerStumbled;
     }
     private void OnDisable() 
     { 
         GameEvents.OnGameOver -= OnCaught; 
         GameEvents.OnPlayerRevived -= ResetChaser;
+        GameEvents.OnPlayerStumbled -= OnPlayerStumbled;
     }
-
+    private void OnPlayerStumbled(float duration)          
+    {
+        stumbleDuration = duration;
+        Stumble();
+    }
     public void Stumble()
     {
         if (caught) return;
