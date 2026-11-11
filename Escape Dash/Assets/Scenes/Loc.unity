@@ -9078,13 +9078,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ChaserController
   player: {fileID: 1746150112}
   animator: {fileID: 1363011936}
-  normalGap: 7
+  model: {fileID: 0}
+  normalGap: 14
   stumbleGap: 2.5
   caughtGap: 1.2
   stumbleDuration: 4
+  hideGap: 12
   closeSpeed: 10
-  recoverSpeed: 1.5
+  recoverSpeed: 3
   xFollowSpeed: 5
+  introGap: 4
+  introHoldTime: 1.5
+  introStartSpeed: 0.8
+  introDropSpeed: 3.5
 --- !u!4 &1921985142
 Transform:
   m_ObjectHideFlags: 0
@@ -9094,9 +9100,9 @@ Transform:
   m_GameObject: {fileID: 1921985140}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: -12}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 0.6, y: 0.6, z: 0.6}
+  m_ConstrainProportionsScale: 1
   m_Children:
   - {fileID: 1363011937}
   m_Father: {fileID: 0}
